@@ -231,4 +231,5 @@ jobs:
             cd .circleci/ansible/
             cp ~/.ssh/id_rsa_5137add941ca0b345fdad7ec621ab9e8 ./udacity.pem
             cat inventory.txt
+            chmod 400 udacity.pem
             ansible-playbook -i inventory.txt configure-server.yml --private-key ./udacity.pem
