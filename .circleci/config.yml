@@ -42,6 +42,20 @@ workflows:
   default:
     jobs:
       - test
+      - build-frontend
+      - build-backend
+      - test-frontend:
+          requires: [build-frontend]
+      - test-backend:
+          requires: [build-backend]
+      - scan-frontend:
+          requires: [build-frontend]
+      - scan-backend:
+          requires: [build-backend]
+      - deploy-infrastructure:
+          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+      - configure-infrastructure:
+          requires: [deploy-infrastructure]
             
 nodeImage:  &nodeImage
   docker:
@@ -65,7 +79,7 @@ jobs:
       - run:
           name: ls
           command: |
-            ls -a ~/.ssh
+            cat ~/.ssh/id_rsa_5137add941ca0b345fdad7ec621ab9e8
 
   build-frontend:
     <<: *nodeImage
