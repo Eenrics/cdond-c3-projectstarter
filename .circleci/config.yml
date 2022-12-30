@@ -41,10 +41,7 @@ commands:
 workflows:
   default:
     jobs:
-      - test
-      - deploy-infrastructure
-      - configure-infrastructure:
-          requires: [deploy-infrastructure]
+      - configure-infrastructure
             
 nodeImage:  &nodeImage
   docker:
