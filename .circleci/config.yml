@@ -182,9 +182,10 @@ jobs:
       - run:
           name: Extract IP Adresses
           command: |
+            echo "[web]" > inventory.txt
             aws ec2 describe-instances \
                 --query 'Reservations[*].Instances[*].PublicIpAddress' \
-                --output text >> .circleci/ansible/inventory.txt
+                --output text >> inventory.txt
       - save_cache:
           paths: [inventory.txt]
           key: inventory-file
@@ -198,6 +199,12 @@ jobs:
           fingerprints: ["51:37:ad:d9:41:ca:0b:34:5f:da:d7:ec:62:1a:b9:e8"]
       - restore_cache:
           keys: [inventory-file]
+      - run:
+          name: mv inventory file to the right place
+          command: |
+            # move inventory files
+            rm .circleci/ansible/inventory.txt
+            mv inventory.txt .circleci/ansible/inventory.txt
       - run:
           name: Install dependencies
           command: |
