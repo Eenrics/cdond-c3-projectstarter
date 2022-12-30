@@ -196,35 +196,33 @@ jobs:
       - add_ssh_keys:
           fingerprints: ["51:37:ad:d9:41:ca:0b:34:5f:da:d7:ec:62:1a:b9:e8"]
       - run:
-          name: Retrieve Ip Address from KVDB
+          name: Install dependencies
           command: |
+            # install the dependencies needed for curl kvdb
             apk update
             apk upgrade
             apk search curl
             apk add curl
-            curl  -s https://kvdb.io/EB2xwfdGievAbEN38Tj81k/PublicIpAddress_i >> ./.circleci/ansible/inventory.txt
-      - run:
-          name: Check inventory and udacity pem file
-          command: |
-            #cp ~/.ssh/id_rsa_5137add941ca0b345fdad7ec621ab9e8 ./.circleci/ansible/udacity.pem
-            cat .circleci/ansible/inventory.txt
-            ls .circleci/ansible
-            #cat .circleci/ansible/udacity.pem
-      - run:
-          name: Install dependencies
-          command: |
             # install the dependencies needed for your playbook
             apk add --update ansible
+            # install the dependencies needed for your aws cli
             pip install --upgrade pip
             pip install awscli
             apk add ansible
+            # install the dependencies needed for your openssh
+            apk search openssh
+            apk add openssh
+      - run:
+          name: Retrieve Ip Address from KVDB
+          command: |
+            curl  -s https://kvdb.io/EB2xwfdGievAbEN38Tj81k/PublicIpAddress_i >> ./.circleci/ansible/inventory.txt
+      - run:
+          name: Check inventory file
+          command: |
+            cat .circleci/ansible/inventory.txt
+            ls .circleci/ansible
       - run:
           name: Configure server
           command: |
             cd .circleci/ansible/
-            apk search openssh
-            apk add openssh
-            #cat inventory.txt
-            #chmod 400 udacity.pem
-            #ansible-playbook -i inventory.txt configure-server.yml --private-key ./udacity.pem
             ansible-playbook configure-server.yml -i inventory.txt
