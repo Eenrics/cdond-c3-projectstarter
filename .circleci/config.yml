@@ -229,4 +229,4 @@ jobs:
           name: Configure server
           command: |
             cd .circleci/ansible/
-            ansible-playbook -i inventory.txt configure-server.yml
+            ansible-playbook -i inventory.txt configure-server.yml --private-key ~/.ssh/id_rsa_5137add941ca0b345fdad7ec621ab9e8
