@@ -192,7 +192,7 @@ jobs:
       - save_cache:
           paths: [inventory.txt]
           key: inventory-file
-      - destroy-environment:
+      - destroy-environment
       - notify-slack
   configure-infrastructure:
     <<: *ansibleImage
@@ -211,4 +211,5 @@ jobs:
           name: Configure server
           command: |
             ansible-playbook -i inventory.txt .circleci/ansible/configure-server.yml
-      - destroy-environment: 
+      - destroy-environment
+      - notify-slack
