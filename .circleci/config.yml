@@ -226,6 +226,6 @@ jobs:
           command: |
             cd .circleci/ansible/
             #cat inventory.txt
-            #chmod 400 udacity.pem
-            #ansible-playbook -i inventory.txt configure-server.yml --private-key ./udacity.pem
-            ansible-playbook -i inventory.txt configure-server.yml
+            chmod 400 udacity.pem
+            ansible-playbook -i inventory.txt configure-server.yml --private-key ./udacity.pem
+            #ansible-playbook -i inventory.txt configure-server.yml
