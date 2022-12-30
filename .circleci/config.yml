@@ -65,8 +65,8 @@ jobs:
       - run:
           name: ls
           command: |
-            ls
-            ls ~
+            ls -a
+            ls -a ~
 
   build-frontend:
     <<: *nodeImage
