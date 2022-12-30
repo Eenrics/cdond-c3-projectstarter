@@ -180,6 +180,17 @@ jobs:
                 --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
                 --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"  \
                 --tags project=udapeople
+      - run:
+          name: Extract IP Adresses
+          command: |
+            echo "[web]" > inventory.txt
+            aws ec2 describe-instances \
+                --query 'Reservations[*].Instances[*].PublicIpAddress' \
+                --output text >> inventory.txt
+      - run:
+          name: Save Ip Address to KVDB
+          command: |
+            curl  -d $(cat inventory.txt) https://kvdb.io/EB2xwfdGievAbEN38Tj81k/PublicIpAddress_i
       - destroy-environment:
           id: "CIRCLE_WORKFLOW_ID:0:7"
   configure-infrastructure:
@@ -189,12 +200,16 @@ jobs:
       - add_ssh_keys:
           fingerprints: ["51:37:ad:d9:41:ca:0b:34:5f:da:d7:ec:62:1a:b9:e8"]
       - run:
-          name: Extract IP Adresses
+          name: Retrieve Ip Address from KVDB
           command: |
-            echo "[web]" > .circleci/ansible/inventory.txt
-            aws ec2 describe-instances \
-                --query 'Reservations[*].Instances[*].PublicIpAddress' \
-                --output text >> .circleci/ansible/inventory.txt
+            curl  -s https://kvdb.io/EB2xwfdGievAbEN38Tj81k/PublicIpAddress_i >> ./.circleci/ansible/inventory.txt
+      - run:
+          name: Check inventory and udacity pem file
+          command: |
+            cp ~/.ssh/id_rsa_5137add941ca0b345fdad7ec621ab9e8 ./.circleci/ansible/udacity.pem
+            cat .circleci/ansible/inventory.txt
+            ls .circleci/ansible
+            cat .circleci/ansible/udacity.pem
       - run:
           name: Install dependencies
           command: |
@@ -204,7 +219,6 @@ jobs:
           name: Configure server
           command: |
             cd .circleci/ansible/
-            cp ~/.ssh/id_rsa_5137add941ca0b345fdad7ec621ab9e8 ./udacity.pem
             cat inventory.txt
             chmod 400 udacity.pem
             ansible-playbook -i inventory.txt configure-server.yml --private-key ./udacity.pem
