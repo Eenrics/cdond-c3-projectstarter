@@ -1,0 +1,35 @@
+version: 2.1
+
+workflows:
+  default:
+    jobs:
+      - build-frontend
+      - build-backend
+
+            
+nodeImage:  &nodeImage
+  docker:
+      - image: circleci/node:13.8.0
+
+jobs:
+  build-frontend:
+    <<: *nodeImage
+    steps:
+      - checkout
+      - run:
+          name: "build and compile front-end"
+          command: |
+            cd frontend
+            npm install
+            npm run build
+  build-backend:
+    <<: *nodeImage
+    steps:
+      - checkout
+      - run:
+          name: "build and compile back-end"
+          command: |
+            cd backend
+            npm install
+            npm run build  
+ 
