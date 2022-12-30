@@ -4,10 +4,17 @@
   apt:
     upgrade: "yes"
 
-- name: "install python."
+- name: "update apt packages"
   become: true
-  shell: |
-    apt install python3
+  become_method: sudo
+  apt:
+    update_cache: yes
+    
+- name: "Remove dependencies that are no longer required"
+  become: true
+  apt:
+    autoremove: yes
+    
 - name: "install dependencies."
   become: true
   apt:
