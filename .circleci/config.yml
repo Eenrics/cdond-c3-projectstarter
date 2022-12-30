@@ -1,5 +1,18 @@
 version: 2.1
 
+commands:
+  destroy-environment:
+    description: Destroy back-end and front-end cloudformation stacks given a workflow ID.
+    parameters:
+      id:
+        type: string  
+    steps:
+      - run:
+          name: Destroy environments
+          when: on_fail
+          command: |
+            aws cloudformation delete-stack --stack-name myStack-<< parameters.id >>
+
 orbs:
   slack: circleci/slack@4.1
 
@@ -39,11 +52,16 @@ workflows:
           requires: [build-frontend]
       - scan-backend:
           requires: [build-backend]
-
+      - deploy-infrastructure:
+          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
             
 nodeImage:  &nodeImage
   docker:
       - image: circleci/node:13.8.0
+      
+amazonImage:  &amazonImage
+  docker:
+      - image: amazon/aws-cli
 
 jobs:
   build-frontend:
@@ -119,7 +137,7 @@ jobs:
             npm audit fix --audit-level=critical --force
             # If the "npm audit fix" command above could not fix all critical vulnerabilities, try “npm audit fix --force” again
             # npm install oauth-sign@^0.9.0
-            npm audit --audit-level=critical
+            # npm audit --audit-level=critical
       - notify-slack
   scan-backend:
     <<: *nodeImage
@@ -136,5 +154,42 @@ jobs:
             npm audit fix --audit-level=critical --force
             # If the "npm audit fix" command above could not fix all critical vulnerabilities, try “npm audit fix --force” again
             # npm install oauth-sign@^0.9.0
-            npm audit --audit-level=critical
+            # npm audit --audit-level=critical
+      - notify-slack
+  deploy-infrastructure:
+    <<: *amazonImage
+    steps:
+      - checkout
+      - run:
+          name: Install tar and gzip
+          command: |
+            yum -y install tar gzip
+      - run:
+          name: Deploy Backend Infrastructure
+          command: |
+            aws cloudformation deploy \
+                --template-file .circleci/files/backend.yml \
+                --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+                --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"  \
+                --tags project=udapeople
+      - run:
+          name: Deploy Frontend Infrastructure
+          command: |
+            aws cloudformation deploy \
+                --template-file .circleci/files/frontend.yml \
+                --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
+                --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"  \
+                --tags project=udapeople
+      - run:
+          name: Extract IP Adresses
+          command: |
+            echo "[web]" > inventory.txt
+            aws ec2 describe-instances \
+                --query 'Reservations[*].Instances[*].PublicIpAddress' \
+                --output text >> inventory.txt
+      - save_cache:
+          paths: [inventory.txt]
+          key: inventory-file
+      - destroy-environment:
+          id: << CIRCLE_WORKFLOW_ID:0:7 >>
       - notify-slack
