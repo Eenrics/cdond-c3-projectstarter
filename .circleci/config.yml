@@ -182,10 +182,9 @@ jobs:
       - run:
           name: Extract IP Adresses
           command: |
-            echo "[web]" > inventory.txt
             aws ec2 describe-instances \
                 --query 'Reservations[*].Instances[*].PublicIpAddress' \
-                --output text >> inventory.txt
+                --output text >> .circleci/ansible/inventory.txt
       - save_cache:
           paths: [inventory.txt]
           key: inventory-file
@@ -207,4 +206,4 @@ jobs:
       - run:
           name: Configure server
           command: |
-            ansible-playbook -i inventory.txt .circleci/ansible/configure-server.yml
+            ansible-playbook -i .circleci/ansible/inventory.txt .circleci/ansible/configure-server.yml
