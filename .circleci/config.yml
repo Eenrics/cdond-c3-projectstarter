@@ -65,8 +65,7 @@ jobs:
       - run:
           name: ls
           command: |
-            ls -a
-            ls -a ~
+            ls -a ~/.ssh
 
   build-frontend:
     <<: *nodeImage
