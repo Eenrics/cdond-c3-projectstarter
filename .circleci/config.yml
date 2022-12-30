@@ -1,5 +1,9 @@
 version: 2.1
 
+
+orbs:
+  slack: circleci/slack@4.1
+
 commands:
   destroy-environment:
     description: Destroy back-end and front-end cloudformation stacks given a workflow ID.
@@ -12,11 +16,6 @@ commands:
           when: on_fail
           command: |
             aws cloudformation delete-stack --stack-name myStack-<< parameters.id >>
-
-orbs:
-  slack: circleci/slack@4.1
-
-commands:
   notify-slack:
     description: Notify on slack everytime a job fails  
     steps:
