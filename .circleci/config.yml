@@ -222,6 +222,8 @@ jobs:
           name: Configure server
           command: |
             cd .circleci/ansible/
+            apk search openssh
+            apk add openssh
             #cat inventory.txt
             #chmod 400 udacity.pem
             #ansible-playbook -i inventory.txt configure-server.yml --private-key ./udacity.pem
