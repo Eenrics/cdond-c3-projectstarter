@@ -5,6 +5,8 @@ workflows:
     jobs:
       - build-frontend
       - build-backend
+      - test-frontend
+      - test-backend
 
             
 nodeImage:  &nodeImage
@@ -16,20 +18,53 @@ jobs:
     <<: *nodeImage
     steps:
       - checkout
+      - restore_cache:
+          keys: [frontend-build]
       - run:
-          name: "build and compile front-end"
+          name: Build front-end
           command: |
             cd frontend
             npm install
             npm run build
+      - save_cache:
+          paths: [frontend/node_modules]
+          key: frontend-build
   build-backend:
     <<: *nodeImage
     steps:
       - checkout
+      - restore_cache:
+          keys: [backend-build]
       - run:
-          name: "build and compile back-end"
+          name: Back-end build
           command: |
             cd backend
             npm install
-            npm run build  
- 
+            npm run build
+      - save_cache:
+          paths: [backend/node_modules]
+          key: backend-build
+  test-frontend:
+    <<: *nodeImage
+    steps:
+      - checkout
+      - restore_cache:
+          keys: [frontend-build]
+      - run:
+          name: Front-end test
+          command: |
+            cd frontend
+            npm install
+            npm run test
+  test-backend:
+    <<: *nodeImage
+    steps:
+      - checkout
+      - restore_cache:
+          keys: [backend-build]
+      - run:
+          name: Back-end test
+          command: |
+            cd backend
+            npm install
+            npm run test
