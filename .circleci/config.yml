@@ -189,7 +189,7 @@ jobs:
       - save_cache:
           paths: [inventory.txt]
           key: inventory-file
-      - destroy-environment
+      - destroy-environment:
           id: "CIRCLE_WORKFLOW_ID:0:7"
   configure-infrastructure:
     <<: *ansibleImage
