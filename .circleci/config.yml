@@ -7,12 +7,15 @@ orbs:
 commands:
   destroy-environment:
     description: Destroy back-end and front-end cloudformation stacks given a workflow ID. 
+    parameters:
+      id:
+        type: string
     steps:
       - run:
           name: Destroy environments
           when: on_fail
           command: |
-            aws cloudformation delete-stack --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:7}
+            aws cloudformation delete-stack --stack-name myStack-${<< parameters.id >>}
   notify-slack:
     description: Notify on slack everytime a job fails  
     steps:
@@ -81,7 +84,6 @@ jobs:
       - save_cache:
           paths: [frontend/node_modules]
           key: frontend-build
-      - notify-slack
   build-backend:
     <<: *nodeImage
     steps:
@@ -97,7 +99,6 @@ jobs:
       - save_cache:
           paths: [backend/node_modules]
           key: backend-build
-      - notify-slack
   test-frontend:
     <<: *nodeImage
     steps:
@@ -110,7 +111,6 @@ jobs:
             cd frontend
             npm install
             npm run test
-      - notify-slack
   test-backend:
     <<: *nodeImage
     steps:
@@ -123,7 +123,6 @@ jobs:
             cd backend
             npm install
             npm run test
-      - notify-slack
   scan-frontend:
     <<: *nodeImage
     steps:
@@ -140,7 +139,6 @@ jobs:
             # If the "npm audit fix" command above could not fix all critical vulnerabilities, try “npm audit fix --force” again
             # npm install oauth-sign@^0.9.0
             # npm audit --audit-level=critical
-      - notify-slack
   scan-backend:
     <<: *nodeImage
     steps:
@@ -157,7 +155,6 @@ jobs:
             # If the "npm audit fix" command above could not fix all critical vulnerabilities, try “npm audit fix --force” again
             # npm install oauth-sign@^0.9.0
             # npm audit --audit-level=critical
-      - notify-slack
   deploy-infrastructure:
     <<: *amazonImage
     steps:
@@ -193,7 +190,7 @@ jobs:
           paths: [inventory.txt]
           key: inventory-file
       - destroy-environment
-      - notify-slack
+          id: "CIRCLE_WORKFLOW_ID:0:7"
   configure-infrastructure:
     <<: *ansibleImage
     steps:
@@ -211,5 +208,3 @@ jobs:
           name: Configure server
           command: |
             ansible-playbook -i inventory.txt .circleci/ansible/configure-server.yml
-      - destroy-environment
-      - notify-slack
