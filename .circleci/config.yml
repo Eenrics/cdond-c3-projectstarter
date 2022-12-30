@@ -206,10 +206,10 @@ jobs:
       - run:
           name: Check inventory and udacity pem file
           command: |
-            cp ~/.ssh/id_rsa_5137add941ca0b345fdad7ec621ab9e8 ./.circleci/ansible/udacity.pem
+            #cp ~/.ssh/id_rsa_5137add941ca0b345fdad7ec621ab9e8 ./.circleci/ansible/udacity.pem
             cat .circleci/ansible/inventory.txt
             ls .circleci/ansible
-            cat .circleci/ansible/udacity.pem
+            #cat .circleci/ansible/udacity.pem
       - run:
           name: Install dependencies
           command: |
@@ -225,4 +225,4 @@ jobs:
             #cat inventory.txt
             #chmod 400 udacity.pem
             #ansible-playbook -i inventory.txt configure-server.yml --private-key ./udacity.pem
-            ansible-playbook -i inventory.txt configure-server.yml
+            ansible-playbook configure-server.yml -i inventory.txt
