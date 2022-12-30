@@ -190,5 +190,5 @@ jobs:
           paths: [inventory.txt]
           key: inventory-file
       - destroy-environment:
-          id: << CIRCLE_WORKFLOW_ID:0:7 >>
+          id: ${CIRCLE_WORKFLOW_ID:0:7}
       - notify-slack
