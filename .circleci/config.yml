@@ -29,6 +29,8 @@ commands:
             else
                 echo "The bucket is already deleted"
             fi
+            echo "Waiting for the buckets to be deleted ..."
+            sleep 15
             echo "S3 BUCKET DESTRUCTION DONE SUCCEESSFULLY !"
             aws cloudformation delete-stack --stack-name myStack-${<< parameters.workflow_id >>}
             aws cloudformation delete-stack --stack-name udapeople-frontend-${<< parameters.workflow_id >>}
@@ -490,9 +492,9 @@ jobs:
       - run:
           name: Backend smoke test.
           command: |
-            curl ${BACKEND_URL_SMOKE} > backend
+            curl ${BACKEND_URL_SMOKE} > backend.reponse
             curl ${BACKEND_URL_SMOKE} -sI > backend.status
-            cat backend.status backend
+            cat backend.status backend.reponse
             if [[ "$(cat backend.status)" =~ "200 OK" ]]
             then
                 echo "It Worked!"
@@ -506,9 +508,9 @@ jobs:
           command: |
             FRONTEND_URL_SMOKE="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com/#/employees"            
             echo ${FRONTEND_URL_SMOKE}
-            curl ${FRONTEND_URL_SMOKE} > frontend
+            curl ${FRONTEND_URL_SMOKE} > frontend.reponse
             curl ${FRONTEND_URL_SMOKE} -sI > frontend.status
-            cat frontend.status frontend
+            cat frontend.status frontend.reponse
             if [[ "$(cat frontend.status)" =~ "200 OK" ]]
             then
                 echo "It Worked!"
