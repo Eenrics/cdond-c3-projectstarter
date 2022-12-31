@@ -354,7 +354,7 @@ jobs:
       - revert-migrations:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
   deploy-backend:
-    <<: *ansibleImage
+    <<: *pynodeImage
     steps:
       - checkout
       - add_ssh_keys:
@@ -363,24 +363,25 @@ jobs:
           name: Install dependencies
           command: |
             # install the dependencies needed for curl kvdb
-            apk update
-            apk upgrade
-            apk search curl
-            apk add curl
+            #apk update
+            #apk upgrade
+            #apk search curl
+            #apk add curl
             # install the dependencies needed for your playbook
-            apk add --update ansible
+            #apk add --update ansible
             # install the dependencies needed for your aws cli
-            pip install --upgrade pip
-            pip install awscli
-            apk add ansible
+            #pip install --upgrade pip
+            #pip install awscli
+            #apk add ansible
             # install the dependencies needed for your openssh
-            apk search openssh
-            apk add openssh
+            #apk search openssh
+            #apk add openssh
             # install the dependencies for node and npm
-            apk update
-            apk add --update nodejs npm nodejs-npm
+            #apk update
+            #apk add --update nodejs npm nodejs-npm
             # install the dependencies for tar and gzip
-            apk add --no-cache tar zip gzip
+            #apk add --no-cache tar zip gzip
+            yum install -y curl tar gzip ansible
       - run:
           name: Retrieve Ip Address from KVDB
           command: |
@@ -398,11 +399,11 @@ jobs:
             npm run build
             cd ..
             # Zip the directory
-            #tar -C backend -czvf artifact.tar.gz .
-            #cd .circleci/ansible
-            #echo "Contents  of the inventory.txt file is -------"
-            #cat inventory.txt
-            #ansible-playbook -i inventory.txt deploy-backend.yml
+            tar -C backend -czvf artifact.tar.gz .
+            cd .circleci/ansible
+            echo "Contents  of the inventory.txt file is -------"
+            cat inventory.txt
+            ansible-playbook -i inventory.txt deploy-backend.yml
       - destroy-environment:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
       - revert-migrations:
