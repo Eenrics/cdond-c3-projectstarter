@@ -412,14 +412,15 @@ jobs:
               echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/dist/.env"
       - run:
           name: Configure server
-          command: |    
-              sudo cd /root/project/backend/dist
-              sudo tar czf dist.tar.gz .
-              sudo mkdir -p ~/project/.circleci/ansible/roles/deploy/files/
-              sudo mv dist.tar.gz ~/project/.circleci/ansible/roles/deploy/files/
-              sudo cd /root/project/backend/node_modules
-              sudo tar czf node_modules.tar.gz .
-              sudo mv node_modules.tar.gz ~/project/.circleci/ansible/roles/deploy/files/
+          command: |  
+              sudo su
+              cd /root/project/backend/dist
+              tar czf dist.tar.gz .
+              mkdir -p ~/project/.circleci/ansible/roles/deploy/files/
+              mv dist.tar.gz ~/project/.circleci/ansible/roles/deploy/files/
+              cd /root/project/backend/node_modules
+              tar czf node_modules.tar.gz .
+              mv node_modules.tar.gz ~/project/.circleci/ansible/roles/deploy/files/
       - run:
           name: Run Ansible
           command: |
