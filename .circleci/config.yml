@@ -464,24 +464,14 @@ jobs:
       - revert-migrations:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
   smoke-test:
-    <<: *ansibleImage 
+    <<: *curlImage 
     steps:
       - checkout
       - run:
           name: Install dependencies
           command: |
             # install the dependencies needed for curl
-            apk update
-            apk upgrade
-            apk search curl
-            apk add curl
-            # install the dependencies needed for your aws cli
-            pip install --upgrade pip
-            pip install awscli
-            apk add ansible
-            # install the dependencies for node and npm
-            apk update
-            apk add --update nodejs npm nodejs-npm
+            sudo apt install curl -y
       - run:
           name: Get backend url
           command: |
