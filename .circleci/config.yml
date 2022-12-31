@@ -137,7 +137,6 @@ jobs:
             then 
                 echo "There is aws s3 bucket already!"
                 echo "Instantiation Succeeded ..."
-                return 0
             else 
                 echo "No s3 bucket found"
                 echo "Creating one for you ..."
@@ -150,7 +149,6 @@ jobs:
                           --stack-name InitialStack\
                           --parameter-overrides WorkflowID=udapeople-my920252436563bucket
                 echo "Instantiation Succeeded ..."
-                return 0
             fi
   build-frontend:
     <<: *nodeImage
