@@ -14,7 +14,7 @@ commands:
           name: Destroy environments
           when: on_fail
           command: |
-            apt install awscli -y
+            pip install awscli
             aws cloudformation delete-stack --stack-name myStack-${<< parameters.workflow_id >>}
             aws cloudformation delete-stack --stack-name udapeople-frontend-${<< parameters.workflow_id >>}
             aws cloudformation delete-stack --stack-name udapeople-backend-${<< parameters.workflow_id >>}
@@ -77,34 +77,9 @@ commands:
 workflows:
   default:
     jobs:
-      - Initiate-aws
-      - build-frontend:
-          requires: [Initiate-aws]
-      - build-backend:
-          requires: [Initiate-aws]
-      - test-frontend:
-          requires: [build-frontend]
-      - test-backend:
-          requires: [build-backend]
-      - scan-backend:
-          requires: [build-backend]
-      - scan-frontend:
-          requires: [build-frontend]
-      - deploy-infrastructure:
-          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
-          filters:
-            branches:
-              only: [master]
-      - configure-infrastructure:
-          requires: [deploy-infrastructure]
-      - run-migrations:
-          requires: [configure-infrastructure]
-      - deploy-frontend:
-          requires: [run-migrations]
-      - deploy-backend:
-          requires: [run-migrations]
+      - deploy-backend
       - smoke-test:
-          requires: [deploy-backend, deploy-frontend]
+          requires: [deploy-backend]
       - cloudfront-update:
           requires: [smoke-test]
       - cleanup:
@@ -129,6 +104,14 @@ alpineImage:  &alpineImage
 curlImage:  &curlImage
   docker:
       - image: cimg/node:19.3.0
+
+pythonImage:  &pythonImage
+  docker:
+      - image: cimg/python:3.11.1
+
+pynodeImage:  &pynodeImage
+  docker:
+      - image: cimg/python:3.11.1-node
 
 jobs:
   Initiate-aws:
@@ -415,12 +398,11 @@ jobs:
             npm run build
             cd ..
             # Zip the directory
-            tar -C backend -czvf artifact.tar.gz .
-            cd .circleci/ansible
-            echo "Contents  of the inventory.txt file is -------"
-            cat inventory.txt
-            ansible-playbook -i inventory.txt deploy-backend.yml
-            exit 0
+            #tar -C backend -czvf artifact.tar.gz .
+            #cd .circleci/ansible
+            #echo "Contents  of the inventory.txt file is -------"
+            #cat inventory.txt
+            #ansible-playbook -i inventory.txt deploy-backend.yml
       - destroy-environment:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
       - revert-migrations:
