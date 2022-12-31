@@ -371,7 +371,7 @@ jobs:
             # install the dependencies needed for your aws cli
             pip install --upgrade pip
             pip install awscli
-            apk add ansible
+            #apk add ansible
             # install the dependencies for node and npm
             apk update
             apk add --update nodejs npm nodejs-npm
