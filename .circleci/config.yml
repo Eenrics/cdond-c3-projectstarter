@@ -112,6 +112,10 @@ pythonImage:  &pythonImage
 pynodeImage:  &pynodeImage
   docker:
       - image: cimg/python:3.11.1-node
+      
+baseImage:  &baseImage
+  docker:
+      - image: cimg/base:2021.04
 
 jobs:
   Initiate-aws:
@@ -412,22 +416,21 @@ jobs:
               echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/dist/.env"
       - run:
           name: Configure server
-          command: |  
-              sudo su
-              cd /root/project/backend/dist
-              tar czf dist.tar.gz .
-              mkdir -p ~/project/.circleci/ansible/roles/deploy/files/
-              mv dist.tar.gz ~/project/.circleci/ansible/roles/deploy/files/
-              cd /root/project/backend/node_modules
-              tar czf node_modules.tar.gz .
-              mv node_modules.tar.gz ~/project/.circleci/ansible/roles/deploy/files/
+          command: |
+              # Zip the directory
+              tar -C backend -czvf artifact.tar.gz .
+              mkdir -p .circleci/ansible/roles/deploy/files/
+              mv ./artifact.tar.gz .circleci/ansible/roles/deploy/files/
+              cd .circleci/ansible
+              echo "Contents  of the inventory.txt file is -------"
+              cat inventory.txt
       - run:
           name: Run Ansible
           command: |
-            sudo cd /root/project/.circleci/ansible
+              cd ./.circleci/ansible
               echo "Contents  of the inventory.txt file is _____________________________________>>"
-              sudo cat inventory.txt
-              sudo ansible-playbook deploy-backend.yml -i inventory.txt
+              cat inventory.txt
+              ansible-playbook -i inventory.txt deploy-backend.yml
       - destroy-environment:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
       - revert-migrations:
