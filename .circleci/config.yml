@@ -493,7 +493,7 @@ jobs:
             curl ${BACKEND_URL_SMOKE} > backend
             curl ${BACKEND_URL_SMOKE} -sI > backend.status
             cat backend.status backend
-            if curl ${BACKEND_URL_SMOKE} | grep "ok"
+            if [[ "$(cat backend.status)" =~ "200 OK" ]]
             then
                 echo "It Worked!"
                 return 0
@@ -504,9 +504,12 @@ jobs:
       - run:
           name: Frontend smoke test.
           command: |
-            URL="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com/#/employees"            
-            echo ${URL} 
-            if [[ "$(cat backend.status)" =~ "200 OK" ]]
+            FRONTEND_URL_SMOKE="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com/#/employees"            
+            echo ${FRONTEND_URL_SMOKE}
+            curl ${FRONTEND_URL_SMOKE} > frontend
+            curl ${FRONTEND_URL_SMOKE} -sI > frontend.status
+            cat frontend.status frontend
+            if [[ "$(cat frontend.status)" =~ "200 OK" ]]
             then
                 echo "It Worked!"
                 return 0
