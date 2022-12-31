@@ -60,7 +60,7 @@ commands:
 workflows:
   default:
     jobs:
-      - smoke-test
+      - test
             
 nodeImage:  &nodeImage
   docker:
