@@ -413,20 +413,20 @@ jobs:
       - run:
           name: Configure server
           command: |    
-              cd /root/project/backend/dist
-              tar czf dist.tar.gz .
-              mkdir -p ~/project/.circleci/ansible/roles/deploy/files/
-              mv dist.tar.gz ~/project/.circleci/ansible/roles/deploy/files/
-              cd /root/project/backend/node_modules
-              tar czf node_modules.tar.gz .
-              mv node_modules.tar.gz ~/project/.circleci/ansible/roles/deploy/files/
+              sudo cd /root/project/backend/dist
+              sudo tar czf dist.tar.gz .
+              sudo mkdir -p ~/project/.circleci/ansible/roles/deploy/files/
+              sudo mv dist.tar.gz ~/project/.circleci/ansible/roles/deploy/files/
+              sudo cd /root/project/backend/node_modules
+              sudo tar czf node_modules.tar.gz .
+              sudo mv node_modules.tar.gz ~/project/.circleci/ansible/roles/deploy/files/
       - run:
           name: Run Ansible
           command: |
-            cd /root/project/.circleci/ansible
+            sudo cd /root/project/.circleci/ansible
               echo "Contents  of the inventory.txt file is _____________________________________>>"
-              cat inventory.txt
-              ansible-playbook deploy-backend.yml -i inventory.txt
+              sudo cat inventory.txt
+              sudo ansible-playbook deploy-backend.yml -i inventory.txt
       - destroy-environment:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
       - revert-migrations:
