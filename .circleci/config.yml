@@ -26,7 +26,7 @@ commands:
           name: Revert migrations
           when: on_fail
           command: |
-            SUCCESS=$(curl --insecure https://kvdb.io/EB2xwfdGievAbEN38Tj81k/migration_<< parameters.id >>)
+            SUCCESS=$(curl --insecure https://kvdb.io/EB2xwfdGievAbEN38Tj81k/migration_${<< parameters.id >>})
             echo ${SUCCESS}
             if (( $SUCCESS == 1 ));
             then
@@ -72,6 +72,10 @@ amazonImage:  &amazonImage
 ansibleImage:  &ansibleImage
   docker:
       - image: python:3.7-alpine3.11
+      
+alpineImage:  &alpineImage
+  docker:
+      - image: alpine:latest
 
 jobs:
   test:
@@ -297,3 +301,104 @@ jobs:
           id: "CIRCLE_WORKFLOW_ID:0:7"
       - revert-migrations:
           id: "CIRCLE_WORKFLOW_ID:0:7"
+  deploy-backend:
+    <<: *ansibleImage
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: ["51:37:ad:d9:41:ca:0b:34:5f:da:d7:ec:62:1a:b9:e8"]
+      - run:
+          name: Install dependencies
+          command: |
+            # install the dependencies needed for curl kvdb
+            apk update
+            apk upgrade
+            apk search curl
+            apk add curl
+            # install the dependencies needed for your playbook
+            apk add --update ansible
+            # install the dependencies needed for your aws cli
+            pip install --upgrade pip
+            pip install awscli
+            apk add ansible
+            # install the dependencies needed for your openssh
+            apk search openssh
+            apk add openssh
+            # install the dependencies for node and npm
+            apk update
+            apk add --update nodejs npm nodejs-npm
+            # install the dependencies for tar and gzip
+            apk add --no-cache tar zip gzip
+      - run:
+          name: Retrieve Ip Address from KVDB
+          command: |
+            curl  -s https://kvdb.io/EB2xwfdGievAbEN38Tj81k/PublicIpAddress_i >> ./.circleci/ansible/inventory.txt
+      - run:
+          name: Check inventory file
+          command: |
+            cat .circleci/ansible/inventory.txt
+            ls .circleci/ansible
+      - run:
+          name: Deploy backend
+          command: |
+            cd backend
+            npm i
+            npm run build
+            cd ..
+            # Zip the directory
+            tar -C backend -czvf artifact.tar.gz .
+            cd .circleci/ansible
+            echo "Contents  of the inventory.txt file is -------"
+            cat inventory.txt
+            ansible-playbook -i inventory.txt deploy-backend.yml
+      - destroy-environment:
+          id: "CIRCLE_WORKFLOW_ID:0:7"
+      - revert-migrations:
+          id: "CIRCLE_WORKFLOW_ID:0:7"
+  smoke-test:
+    <<: *alpineImage 
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            # install the dependencies needed for curl
+            apk update
+            apk upgrade
+            apk search curl
+            apk add curl
+            # install the dependencies needed for your aws cli
+            pip install --upgrade pip
+            pip install awscli
+            apk add ansible
+            # install the dependencies for node and npm
+            apk update
+            apk add --update nodejs npm nodejs-npm
+      - run:
+          name: Get backend url
+          command: |
+            curl  -s https://kvdb.io/EB2xwfdGievAbEN38Tj81k/PublicIpAddress_i > ./Backend-URL.txt
+      - run:
+          name: Backend smoke test.
+          command: |
+            curl k://1.2.3.4:3030/api/status
+      - run:
+          name: Frontend smoke test.
+          command: |
+            # your code here
+      # Here's where you will add some code to rollback on failure  
+
+  cloudfront-update:
+    docker:
+      # Docker image here that supports AWS CLI
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            # your code here
+      - run:
+          name: Update cloudfront distribution
+          command: |
+            # your code here
+      # Here's where you will add some code to rollback on failure
