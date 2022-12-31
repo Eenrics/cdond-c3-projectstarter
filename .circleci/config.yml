@@ -80,34 +80,7 @@ commands:
 workflows:
   default:
     jobs:
-      - Initiate-aws
-      - build-frontend:
-          requires: [Initiate-aws]
-      - build-backend:
-          requires: [Initiate-aws]
-      - test-frontend:
-          requires: [build-frontend]
-      - test-backend:
-          requires: [build-backend]
-      - scan-backend:
-          requires: [build-backend]
-      - scan-frontend:
-          requires: [build-frontend]
-      - deploy-infrastructure:
-          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
-          filters:
-            branches:
-              only: [master]
-      - configure-infrastructure:
-          requires: [deploy-infrastructure]
-      - run-migrations:
-          requires: [configure-infrastructure]
-      - deploy-frontend:
-          requires: [run-migrations]
-      - deploy-backend:
-          requires: [run-migrations]
-      - smoke-test:
-          requires: [deploy-backend, deploy-frontend]
+      - smoke-test
       - cloudfront-update:
           requires: [smoke-test]
       - cleanup:
@@ -464,14 +437,24 @@ jobs:
       - revert-migrations:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
   smoke-test:
-    <<: *curlImage 
+    <<: *ansibleImage 
     steps:
       - checkout
       - run:
           name: Install dependencies
           command: |
             # install the dependencies needed for curl
-            sudo apt install curl -y
+            apk update
+            apk upgrade
+            apk search curl
+            apk add curl
+            # install the dependencies needed for your aws cli
+            pip install --upgrade pip
+            pip install awscli
+            apk add ansible
+            # install the dependencies for node and npm
+            apk update
+            apk add --update nodejs npm nodejs-npm
       - run:
           name: Get backend url
           command: |
@@ -482,8 +465,10 @@ jobs:
       - run:
           name: Backend smoke test.
           command: |
-            curl ${BACKEND_URL_SMOKE} > backend.reponse
-            curl ${BACKEND_URL_SMOKE} -sI > backend.status
+            # TO TEST REMOVE AFTER TEST
+            export BACKEND_URL_SMOKE="https://www.google.com"
+            curl  -s ${BACKEND_URL_SMOKE} > backend.reponse
+            curl  -sI ${BACKEND_URL_SMOKE} > backend.status
             cat backend.status backend.reponse
             if [[ "$(cat backend.status)" =~ "200 OK" ]]
             then
@@ -496,10 +481,12 @@ jobs:
       - run:
           name: Frontend smoke test.
           command: |
-            FRONTEND_URL_SMOKE="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com/#/employees"            
+            FRONTEND_URL_SMOKE="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com/#/employees"
+            # TO TEST REMOVE AFTER TEST
+            export FRONTEND_URL_SMOKE="https://www.google.com"
             echo ${FRONTEND_URL_SMOKE}
-            curl ${FRONTEND_URL_SMOKE} > frontend.reponse
-            curl ${FRONTEND_URL_SMOKE} -sI > frontend.status
+            curl  -s ${FRONTEND_URL_SMOKE} > frontend.reponse
+            curl  -sI ${FRONTEND_URL_SMOKE} > frontend.status
             cat frontend.status frontend.reponse
             if [[ "$(cat frontend.status)" =~ "200 OK" ]]
             then
