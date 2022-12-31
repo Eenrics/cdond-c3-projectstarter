@@ -388,10 +388,10 @@ jobs:
             if curl ${BACKEND_URL_SMOKE} | grep "ok"
             then
                 echo "It Worked!"
-                return 1
+                return 0
             else
                 echo "!!! It failed!"
-                return 1
+                return 0
             fi
       - run:
           name: Frontend smoke test.
@@ -401,10 +401,10 @@ jobs:
             if curl -s ${URL} | grep "Welcome"
             then
                 echo "It Worked!"
-                return 1
+                return 0
             else
                 echo "!!! It failed!"
-                return 1
+                return 0
             fi
       - destroy-environment:
           id: "CIRCLE_WORKFLOW_ID:0:7"
