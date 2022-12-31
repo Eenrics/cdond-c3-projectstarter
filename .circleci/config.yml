@@ -349,6 +349,10 @@ jobs:
             npm run build
             tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
             aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
+      - persist_to_workspace:
+          root: .
+          paths:
+            - ./frontend/dist
       - destroy-environment:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
       - revert-migrations:
@@ -359,31 +363,18 @@ jobs:
       - checkout
       - add_ssh_keys:
           fingerprints: ["51:37:ad:d9:41:ca:0b:34:5f:da:d7:ec:62:1a:b9:e8"]
+      - attach_workspace:
+          at: ~/
       - run:
           name: Install dependencies
           command: |
-            # install the dependencies needed for curl kvdb
-            #apk update
-            #apk upgrade
-            #apk search curl
-            #apk add curl
-            # install the dependencies needed for your playbook
-            #apk add --update ansible
-            # install the dependencies needed for your aws cli
-            #pip install --upgrade pip
-            #pip install awscli
-            #apk add ansible
-            # install the dependencies needed for your openssh
-            #apk search openssh
-            #apk add openssh
-            # install the dependencies for node and npm
-            #apk update
-            #apk add --update nodejs npm nodejs-npm
-            # install the dependencies for tar and gzip
-            #apk add --no-cache tar zip gzip
+            # Upgrade the system
             sudo apt update
             sudo apt upgrade
             sudo apt install -y curl tar gzip ansible
+            # Upgrade python and its packages
+            pip install --upgrade pip
+            pip install awscli
       - run:
           name: Retrieve Ip Address from KVDB
           command: |
@@ -394,6 +385,19 @@ jobs:
             cat .circleci/ansible/inventory.txt
             ls .circleci/ansible
       - run:
+          name: Add env vars
+          command: |
+              echo ENVIROMENT=production > "backend/dist/.env"
+              echo TYPEORM_CONNECTION=postgres >> "backend/dist/.env"
+              echo TYPEORM_ENTITIES=./modules/domain/**/*.entity{.ts,.js} >> "backend/dist/.env"
+              echo TYPEORM_HOST=$TYPEORM_HOST >> "backend/dist/.env"
+              echo TYPEORM_PORT=$TYPEORM_PORT >> "backend/dist/.env"
+              echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> "backend/dist/.env"
+              echo TYPEORM_MIGRATIONS=$TYPEORM_MIGRATIONS >> "backend/dist/.env"
+              echo TYPEORM_MIGRATIONS_DIR=$TYPEORM_MIGRATIONS_DIR >> "backend/dist/.env"
+              echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "backend/dist/.env"
+              echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/dist/.env"
+      - run:
           name: Deploy backend
           command: |
             cd backend
@@ -401,11 +405,25 @@ jobs:
             npm run build
             cd ..
             # Zip the directory
-            tar -C backend -czvf artifact.tar.gz .
-            cd .circleci/ansible
-            echo "Contents  of the inventory.txt file is -------"
+            #tar -C backend -czvf artifact.tar.gz .
+            #cd .circleci/ansible
+            #echo "Contents  of the inventory.txt file is -------"
+            #cat inventory.txt
+            #ansible-playbook -i inventory.txt deploy-backend.yml
+            cd /root/project/backend/dist
+            tar czf dist.tar.gz .
+            mkdir -p ~/project/.circleci/ansible/roles/deploy/files/
+            mv dist.tar.gz ~/project/.circleci/ansible/roles/deploy/files/
+            cd /root/project/backend/node_modules
+            tar czf node_modules.tar.gz .
+            mv node_modules.tar.gz ~/project/.circleci/ansible/roles/deploy/files/
+      - run:
+          name: Configure server
+          command: |    
+            cd /root/project/.circleci/ansible
+            echo "Contents  of the inventory.txt file is _____________________________________>>"
             cat inventory.txt
-            ansible-playbook -i inventory.txt deploy-backend.yml
+            ansible-playbook deploy-backend.yml -i inventory.txt
       - destroy-environment:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
       - revert-migrations:
