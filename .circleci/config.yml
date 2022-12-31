@@ -80,7 +80,34 @@ commands:
 workflows:
   default:
     jobs:
-      - smoke-test
+      - Initiate-aws
+      - build-frontend:
+          requires: [Initiate-aws]
+      - build-backend:
+          requires: [Initiate-aws]
+      - test-frontend:
+          requires: [build-frontend]
+      - test-backend:
+          requires: [build-backend]
+      - scan-backend:
+          requires: [build-backend]
+      - scan-frontend:
+          requires: [build-frontend]
+      - deploy-infrastructure:
+          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+          filters:
+            branches:
+              only: [master]
+      - configure-infrastructure:
+          requires: [deploy-infrastructure]
+      - run-migrations:
+          requires: [configure-infrastructure]
+      - deploy-frontend:
+          requires: [run-migrations]
+      - deploy-backend:
+          requires: [run-migrations]
+      - smoke-test:
+          requires: [deploy-backend, deploy-frontend]
       - cloudfront-update:
           requires: [smoke-test]
       - cleanup:
@@ -465,12 +492,10 @@ jobs:
       - run:
           name: Backend smoke test.
           command: |
-            # TO TEST REMOVE AFTER TEST
-            export BACKEND_URL_SMOKE="https://www.google.com"
             curl  -s ${BACKEND_URL_SMOKE} > backend.reponse
             curl  -sI ${BACKEND_URL_SMOKE} > backend.status
             cat backend.status backend.reponse
-            if [[ "$(cat backend.status)" =~ "200 OK" ]]
+            if [[ "$(cat backend.reponse)" =~ "ok" ]]
             then
                 echo "It Worked!"
                 return 0
@@ -482,13 +507,11 @@ jobs:
           name: Frontend smoke test.
           command: |
             FRONTEND_URL_SMOKE="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com/#/employees"
-            # TO TEST REMOVE AFTER TEST
-            export FRONTEND_URL_SMOKE="https://www.google.com"
             echo ${FRONTEND_URL_SMOKE}
             curl  -s ${FRONTEND_URL_SMOKE} > frontend.reponse
             curl  -sI ${FRONTEND_URL_SMOKE} > frontend.status
             cat frontend.status frontend.reponse
-            if [[ "$(cat frontend.status)" =~ "200 OK" ]]
+            if [[ "$(cat frontend.status)" =~ "200" ]]
             then
                 echo "It Worked!"
                 return 0
