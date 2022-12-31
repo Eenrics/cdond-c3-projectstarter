@@ -14,7 +14,7 @@ commands:
           name: Destroy environments
           when: on_fail
           command: |
-            sudo apt install awscli -y || sudo yum install awscli -y
+            sudo apt install awscli -y
             aws cloudformation delete-stack --stack-name myStack-${<< parameters.workflow_id >>}
             aws cloudformation delete-stack --stack-name udapeople-frontend-${<< parameters.workflow_id >>}
             aws cloudformation delete-stack --stack-name udapeople-backend-${<< parameters.workflow_id >>}
@@ -77,28 +77,7 @@ commands:
 workflows:
   default:
     jobs:
-      - Initiate-aws
-      - build-frontend:
-          requires: [Initiate-aws]
-      - build-backend:
-          requires: [Initiate-aws]
-      - test-frontend:
-          requires: [build-frontend]
-      - test-backend:
-          requires: [build-backend]
-      - scan-backend:
-          requires: [build-backend]
-      - scan-frontend:
-          requires: [build-frontend]
-      - deploy-infrastructure:
-          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
-          filters:
-            branches:
-              only: [master]
-      - configure-infrastructure:
-          requires: [deploy-infrastructure]
-      - run-migrations:
-          requires: [configure-infrastructure]
+      - run-migrations
       - deploy-frontend:
           requires: [run-migrations]
       - deploy-backend:
@@ -332,6 +311,7 @@ jobs:
             #if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
             if true
             then
+              sudo apt install curl -y
               curl https://kvdb.io/EB2xwfdGievAbEN38Tj81k/migration_${CIRCLE_WORKFLOW_ID:0:7} -d '1'
             fi
       - destroy-environment:
