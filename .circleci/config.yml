@@ -381,6 +381,8 @@ jobs:
             #apk add --update nodejs npm nodejs-npm
             # install the dependencies for tar and gzip
             #apk add --no-cache tar zip gzip
+            sudo apt update
+            sudo apt upgrade
             sudo apt install -y curl tar gzip ansible
       - run:
           name: Retrieve Ip Address from KVDB
