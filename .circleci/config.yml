@@ -77,9 +77,6 @@ commands:
 workflows:
   default:
     jobs:
-workflows:
-  default:
-    jobs:
       - Initiate-aws
       - build-frontend:
           requires: [Initiate-aws]
