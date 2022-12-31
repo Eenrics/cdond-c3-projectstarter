@@ -17,7 +17,21 @@ commands:
             aws cloudformation delete-stack --stack-name myStack-${<< parameters.workflow_id >>}
             aws cloudformation delete-stack --stack-name udapeople-frontend-${<< parameters.workflow_id >>}
             aws cloudformation delete-stack --stack-name udapeople-backend-${<< parameters.workflow_id >>}
-            aws s3 rm s3://udapeople-920252436563 --recursive
+            if [[ "$(aws s3 ls)" =~ "udapeople-my920252436563bucket" ]]
+            then
+                aws s3 rm s3://udapeople-my920252436563bucket/*
+                aws s3 rb s3://udapeople-my920252436563bucket
+            else
+                echo "The bucket is already deleted"
+            fi
+            if [[ "$(aws s3 ls)" =~ "udapeople-${<< parameters.workflow_id >>}" ]]
+            then
+                aws s3 rm s3://udapeople-${<< parameters.workflow_id >>}/*
+                aws s3 rb s3://udapeople-${<< parameters.workflow_id >>}
+            else
+                echo "The bucket is already deleted"
+            fi
+            echo "ENVIRONMENT DESTRUCTION DONE SUCCEESSFULLY !"
   revert-migrations:
     description: Revert the last migration with the given workflow ID.
     parameters:
@@ -62,7 +76,38 @@ commands:
 workflows:
   default:
     jobs:
-      - smoke-test
+      - Initiate-aws
+      - build-frontend:
+          requires: [Initiate-aws]
+      - build-backend:
+          requires: [Initiate-aws]
+      - test-frontend:
+          requires: [build-frontend]
+      - test-backend:
+          requires: [build-backend]
+      - scan-backend:
+          requires: [build-backend]
+      - scan-frontend:
+          requires: [build-frontend]
+      - deploy-infrastructure:
+          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+          filters:
+            branches:
+              only: [test-feature-branch]
+      - configure-infrastructure:
+          requires: [deploy-infrastructure]
+      - run-migrations:
+          requires: [configure-infrastructure]
+      - deploy-frontend:
+          requires: [run-migrations]
+      - deploy-backend:
+          requires: [run-migrations]
+      - smoke-test:
+          requires: [deploy-backend, deploy-frontend]
+      - cloudfront-update:
+          requires: [smoke-test]
+      - cleanup:
+          requires: [cloudfront-update]
             
 nodeImage:  &nodeImage
   docker:
@@ -81,17 +126,32 @@ alpineImage:  &alpineImage
       - image: alpine:latest
 
 jobs:
-  test:
-    <<: *ansibleImage
+  Initiate-aws:
+    <<: *amazonImage
     steps:
       - checkout
-      - add_ssh_keys:
-          fingerprints: ["51:37:ad:d9:41:ca:0b:34:5f:da:d7:ec:62:1a:b9:e8"]
       - run:
-          name: ls
+          name: Initiate s3 buckets 
           command: |
-            cat ~/.ssh/id_rsa_5137add941ca0b345fdad7ec621ab9e8
-
+            if [[ "$(aws s3 ls)" ]]
+            then 
+                echo "There is aws s3 bucket already!"
+                echo "Instantiation Succeeded ..."
+                return 0
+            else 
+                echo "No s3 bucket found"
+                echo "Creating one for you ..."
+                echo "Instantiation began ..."
+                aws s3api create-bucket --bucket udapeople-my920252436563bucket
+                echo "Creating cloudfront for your bucket"
+                cd .circleci/files
+                aws cloudformation deploy \
+                          --template-file cloudfront.yml \
+                          --stack-name InitialStack\
+                          --parameter-overrides WorkflowID=udapeople-my920252436563bucket
+                echo "Instantiation Succeeded ..."
+                return 0
+            fi
   build-frontend:
     <<: *nodeImage
     steps:
@@ -392,7 +452,7 @@ jobs:
             if curl ${BACKEND_URL_SMOKE} | grep "ok"
             then
                 echo "It Worked!"
-                return 1
+                return 0
             else
                 echo "!!! It failed!"
                 return 1
@@ -414,4 +474,60 @@ jobs:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
       - revert-migrations:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"  
-
+  cloudfront-update:
+    <<: *amazonImage
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            cd frontend
+            yum install -y curl tar gzip
+            curl -sL https://rpm.nodesource.com/setup_10.x | bash -
+            yum install -y nodejs
+      - run:
+          name: Update cloudfront distribution
+          command: |
+            aws cloudformation deploy \
+              --template-file .circleci/files/cloudfront.yml \
+              --stack-name InitialStack \
+              --parameter-overrides WorkflowID="udapeople-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --tags project=udapeople
+      - destroy-environment:
+          workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
+      - revert-migrations:
+          workflow_id: "CIRCLE_WORKFLOW_ID:0:7"   
+  cleanup:
+    <<: *amazonImage
+    steps:
+      - checkout
+      - run:
+          name: Get old stack workflow id
+          command: |
+            # Fetch the Old workflow ID
+            export OldWorkflowID=$(aws cloudformation \
+                    list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
+                    --no-paginate --output text)
+            echo OldWorkflowID: "${OldWorkflowID}"
+            echo CIRCLE_WORKFLOW_ID "${CIRCLE_WORKFLOW_ID:0:7}"
+            # Fetch the stack names          
+            export STACKS=($(aws cloudformation list-stacks --query "StackSummaries[*].StackName" \
+                    --stack-status-filter CREATE_COMPLETE --no-paginate --output text)) 
+            echo Stack names: "${STACKS[@]}" 
+      - run:
+          name: Remove old stacks and files
+          command: |
+            # You can use any condition like:
+            # if [[ "${OldWorkflowID}" =~ "${STACKS[@]}"  ]]
+            # if [[ "${CIRCLE_WORKFLOW_ID:0:7}" =~ "${OldWorkflowID}" ]]
+            if [[ "${CIRCLE_WORKFLOW_ID:0:7}" != "${OldWorkflowID}" ]]
+            then
+                echo "___________________________DELETE CONFIMED !________________________________"
+                aws s3 rm "s3://udapeople-${OldWorkflowID}" --recursive
+                aws cloudformation delete-stack --stack-name "udapeople-backend-${OldWorkflowID}"
+                aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID}"
+            else
+                echo "___________________________CLEANUP SKIPPED :(________________________________"
+                echo ""
+                echo "Message:  There is nothing to clear..."
+            fi
