@@ -80,34 +80,7 @@ commands:
 workflows:
   default:
     jobs:
-      - Initiate-aws
-      - build-frontend:
-          requires: [Initiate-aws]
-      - build-backend:
-          requires: [Initiate-aws]
-      - test-frontend:
-          requires: [build-frontend]
-      - test-backend:
-          requires: [build-backend]
-      - scan-backend:
-          requires: [build-backend]
-      - scan-frontend:
-          requires: [build-frontend]
-      - deploy-infrastructure:
-          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
-          filters:
-            branches:
-              only: [master]
-      - configure-infrastructure:
-          requires: [deploy-infrastructure]
-      - run-migrations:
-          requires: [configure-infrastructure]
-      - deploy-frontend:
-          requires: [run-migrations]
-      - deploy-backend:
-          requires: [run-migrations]
-      - smoke-test:
-          requires: [deploy-backend, deploy-frontend]
+      - smoke-test
       - cloudfront-update:
           requires: [smoke-test]
       - cleanup:
@@ -143,7 +116,7 @@ pynodeImage:  &pynodeImage
       
 baseImage:  &baseImage
   docker:
-      - image: cimg/base:2021.04
+      - image: cimg/base:stable
 
 jobs:
   Initiate-aws:
@@ -464,24 +437,19 @@ jobs:
       - revert-migrations:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
   smoke-test:
-    <<: *ansibleImage 
+    <<: *baseImage
     steps:
       - checkout
       - run:
           name: Install dependencies
           command: |
-            # install the dependencies needed for curl
-            apk update
-            apk upgrade
-            apk search curl
-            apk add curl
             # install the dependencies needed for your aws cli
-            pip install --upgrade pip
-            pip install awscli
-            apk add ansible
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
             # install the dependencies for node and npm
-            apk update
-            apk add --update nodejs npm nodejs-npm
+            curl -fsSL https://deb.nodesource.com/setup_13.x | sudo -E bash -
+            sudo apt install -y nodejs
       - run:
           name: Get backend url
           command: |
