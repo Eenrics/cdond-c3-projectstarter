@@ -382,6 +382,10 @@ jobs:
             cd backend
             npm install
       - run:
+          name: Retrieve Ip Address from KVDB
+          command: |
+            curl  -s https://kvdb.io/EB2xwfdGievAbEN38Tj81k/PublicIpAddress_i >> ./.circleci/ansible/inventory.txt
+      - run:
           name: Package Backend
           command: |
             cd backend
