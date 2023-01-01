@@ -451,8 +451,8 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            sudo apt install update
-            sudo apt install upgrade
+            sudo apt-get update
+            sudo apt-get upgrade
             sudo apt install grep curl -y
             # install the dependencies needed for your aws cli
             curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
