@@ -505,7 +505,7 @@ jobs:
             if (curl -s $BACKEND_URL_SMOKE | grep "ok")
             then
               echo "It Worked"
-              exit 0
+              exit 1
             else
               echo "It Failed"
               exit 1
