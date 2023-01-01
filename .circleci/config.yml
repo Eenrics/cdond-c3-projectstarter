@@ -480,10 +480,10 @@ jobs:
             if [[ "$(cat frontend.status)" =~ "200" ]]
             then
                 echo "It Worked!"
-                return 0
+                exit 0
             else
                 echo "!!! It failed!"
-                return 1
+                exit 1
             fi
 
   cloudfront-update:
