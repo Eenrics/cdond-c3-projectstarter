@@ -445,7 +445,7 @@ jobs:
       - revert-migrations:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
   smoke-test:
-    <<: *baseImage
+    <<: *pythonImage
     steps:
       - checkout
       - run:
