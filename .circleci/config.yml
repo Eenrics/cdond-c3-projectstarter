@@ -485,7 +485,7 @@ jobs:
           command: |
             sudo apt-get update -y
             sudo apt-get upgrade -y
-            sudo apt install grep curl -y
+            sudo apt install grep curl python -y
             # install the dependencies needed for your aws cli
             curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
             unzip awscliv2.zip
