@@ -425,45 +425,34 @@ jobs:
             cd .circleci/ansible
             cat inventory.txt
             ansible-playbook -i inventory.txt deploy-backend.yml
+
   smoke-test:
-    <<: *ansibleImage 
+    docker:
+      - image: cimg/base:stable
     steps:
       - checkout
-      - run:
-          name: Install dependencies
-          command: |
-            # install the dependencies needed for curl
-            apk update
-            apk upgrade
-            apk search curl
-            apk add curl
-            # install the dependencies needed for your aws cli
-            pip install --upgrade pip
-            pip install awscli
-            apk add ansible
-            # install the dependencies for node and npm
-            apk update
-            apk add --update nodejs npm nodejs-npm
-      - run:
-          name: Get backend url
-          command: |
-            curl  -s https://kvdb.io/EB2xwfdGievAbEN38Tj81k/PublicIpAddress_i > BACKEND_IP_ADD.txt
-            BACKEND_IP_SMOKE=$(cat BACKEND_IP_ADD.txt)
-            export BACKEND_URL_SMOKE="${BACKEND_IP_SMOKE}:3030/api/status"
-            echo $BACKEND_URL_SMOKE
+      - install_awscli
+      - install_nodejs
       - run:
           name: Backend smoke test.
           command: |
-            curl  -s "https://${BACKEND_URL_SMOKE}" > backend.reponse
-            curl  -sI "https://${BACKEND_URL_SMOKE}" > backend.status
-            cat backend.status backend.reponse
-            if [[ "$(cat backend.reponse)" =~ "ok" ]]
+            BACKEND_PUBLIC_IP=$(curl  -s https://kvdb.io/EB2xwfdGievAbEN38Tj81k/PublicIpAddress_i)
+            export API_URL=http://${BACKEND_PUBLIC_IP}:3030
+            if curl -s $API_URL/api/status | grep "ok"
             then
-                echo "It Worked!"
-                return 0
+              exit 0
             else
-                echo "!!! It failed!"
-                return 1
+              exit 1
+            fi
+      - run:
+          name: Frontend smoke test.
+          command: |
+            FRONTEND_WEBSITE=http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website.${AWS_DEFAULT_REGION}.amazonaws.com
+            if curl -s $FRONTEND_WEBSITE | grep "Welcome"
+            then
+              exit 0
+            else
+              exit 1
             fi
 
 
