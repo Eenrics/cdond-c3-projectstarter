@@ -504,8 +504,6 @@ jobs:
           name: Install dependencies
           command: |
             cd frontend
-            yum install update
-            yum install upgrade
             yum install -y curl tar gzip
             curl -sL https://rpm.nodesource.com/setup_10.x | bash -
             yum install -y nodejs
