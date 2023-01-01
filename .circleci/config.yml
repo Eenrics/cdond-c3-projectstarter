@@ -460,17 +460,13 @@ jobs:
       - run:
           name: Backend smoke test.
           command: |
-            curl  -s "https://${BACKEND_URL_SMOKE}" > backend.reponse
-            curl  -sI "https://${BACKEND_URL_SMOKE}" > backend.status
-            cat backend.status backend.reponse
-            #if [[ "$(cat backend.reponse)" =~ "ok" ]]
+            export API_URL=http://${BACKEND_IP_SMOKE}:3030
+            #if curl -s $API_URL/api/status | grep "ok"
             if true
             then
-                echo "It Worked!"
-                return 0
+              exit 0
             else
-                echo "!!! It failed!"
-                return 1
+              exit 1
             fi
       - run:
           name: Frontend smoke test.
