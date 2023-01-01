@@ -126,6 +126,10 @@ pynodeImage:  &pynodeImage
 baseImage:  &baseImage
   docker:
       - image: cimg/base:stable
+      
+ubuntuImage:  &ubuntuImage
+  docker:
+      image: ubuntu-2004:2022.10.1
 
 
 # Jobs
@@ -464,11 +468,13 @@ jobs:
       - run:
           name: Backend smoke test.
           command: |
-            if curl -s $BACKEND_URL_SMOKE | grep "ok"
+            if (curl -s $BACKEND_URL_SMOKE | grep "ok")
             then
               echo "It Worked"
+              exit 0
             else
               echo "It Failed"
+              exit 1
             fi
       - run:
           name: Frontend smoke test.
