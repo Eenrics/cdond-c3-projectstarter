@@ -85,9 +85,7 @@ commands:
 workflows:
   default:
     jobs:
-      - smoke-test
-      - cloudfront-update:
-          requires: [smoke-test]
+      - cloudfront-update
       - cleanup:
           requires: [cloudfront-update]
             
@@ -462,19 +460,14 @@ jobs:
             curl -fsSL https://deb.nodesource.com/setup_13.x | sudo -E bash -
             sudo apt install -y nodejs
       - run:
-          name: Get backend url
-          command: |
-            curl  -s https://kvdb.io/EB2xwfdGievAbEN38Tj81k/PublicIpAddress_i > BACKEND_IP_ADD.txt
-            BACKEND_IP_SMOKE=$(cat BACKEND_IP_ADD.txt)
-            export BACKEND_URL_SMOKE="http://${BACKEND_IP_SMOKE}:3030/api/status"
-            echo $BACKEND_URL_SMOKE
-      - run:
           name: Backend smoke test.
           command: |
+            # Get BACKEND URL
             curl  -s https://kvdb.io/EB2xwfdGievAbEN38Tj81k/PublicIpAddress_i > BACKEND_IP_ADD.txt
             BACKEND_IP_SMOKE=$(cat BACKEND_IP_ADD.txt)
             export BACKEND_URL_SMOKE="http://${BACKEND_IP_SMOKE}:3030/api/status"
             echo $BACKEND_URL_SMOKE
+            # Test BACKEND SERVER API
             if (curl -s $BACKEND_URL_SMOKE | grep "ok")
             then
               echo "It Worked"
@@ -499,7 +492,10 @@ jobs:
                 echo "!!! It Failed!"
                 exit 1
             fi
-
+      - destroy-environment:
+          workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
+      - revert-migrations:
+          workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
   cloudfront-update:
     <<: *amazonImage
     steps:
