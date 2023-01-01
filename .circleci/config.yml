@@ -434,12 +434,6 @@ jobs:
             npm i
             npm run build
             cd ..
-            # Zip the directory
-            #tar -C backend -czvf artifact.tar.gz .
-            #cd .circleci/ansible
-            #echo "Contents  of the inventory.txt file is -------"
-            #cat inventory.txt
-            #ansible-playbook -i inventory.txt deploy-backend.yml
       - run:
           name: Add env vars
           command: |
@@ -456,7 +450,6 @@ jobs:
       - run:
           name: Configure server
           command: |
-              # Zip the directory
               tar -C backend -czvf artifact.tar.gz .
               mkdir -p .circleci/ansible/roles/deploy/files/
               mv ./artifact.tar.gz .circleci/ansible/roles/deploy/files/
@@ -499,11 +492,12 @@ jobs:
           name: Backend smoke test.
           command: |
             export API_URL=http://${BACKEND_IP_SMOKE}:3030
-            #if curl -s $API_URL/api/status | grep "ok"
-            if true
+            if curl -s $API_URL/api/status | grep "ok"
             then
+              echo "It Worked"
               exit 0
             else
+              echo "It Failed"
               exit 1
             fi
       - run:
@@ -519,7 +513,7 @@ jobs:
                 echo "It Worked!"
                 exit 0
             else
-                echo "!!! It failed!"
+                echo "!!! It Failed!"
                 exit 1
             fi
       - destroy-environment:
@@ -554,32 +548,32 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Get old stack workflow id
+          name: Get all bucket and deleting old buckets
           command: |
-            # Fetch the Old workflow ID
-            export OldWorkflowID=$(aws cloudformation \
-                    list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
-                    --no-paginate --output text)
-            echo OldWorkflowID: "${OldWorkflowID}"
-            echo CIRCLE_WORKFLOW_ID "${CIRCLE_WORKFLOW_ID:0:7}"
-            # Fetch the stack names          
-            export STACKS=($(aws cloudformation list-stacks --query "StackSummaries[*].StackName" \
-                    --stack-status-filter CREATE_COMPLETE --no-paginate --output text)) 
-            echo Stack names: "${STACKS[@]}" 
+            # GET BUCKETS
+            aws s3 ls > s3.lists
+
+            # PUT BUCKETS INTO ARRAY VARIABLE
+            BUCKET_LISTS=$(cat s3.lists | sed  's/^.*\(udapeople-.*\)$/\1/g' | tr " " "\n")
+
+            # ITERATE THROUGH BUCKETS
+            for BUCKET in $BUCKET_LISTS; do (if [[ "$BUCKET" != "udapeople-${CIRCLE_WORKFLOW_ID:0:7}" ]]; then echo " > DELETING BUCKET $BUCKET"; aws s3 rm "s3://udapeople-${OldWorkflowID}" --recursive; aws s3 rb "s3://udapeople-${OldWorkflowID}"; else echo " > MOVING TO THE NEXT BUCKET"; fi;); done
+      - run:
+          name: Get all stack and deleting old stacks
+          command: |
+            # GET STACKS
+            aws cloudformation describe-stacks | grep StackName > stack.lists
+
+            # PUT STACKS INTO AN ARRAY VARIABLE
+            ALL_STACKS=$(cat stack.lists |  sed  's/^.*\(udapeople-.*\)$/\1/g' | tr " " "\n")
+
+            # ITERATE THROUGH STACKS
+            for STACK in $ALL_STACKS; do (if [[ "$STACK" =~ "${CIRCLE_WORKFLOW_ID:0:7}" ]]; then echo " > SKIPPING BUCKET $STACK"; else echo " > DELETING BUCKET $STACK"; aws cloudformation delete-stack --stack-name "$STACK"; fi;); done
       - run:
           name: Remove old stacks and files
           command: |
-            # You can use any condition like:
-            # if [[ "${OldWorkflowID}" =~ "${STACKS[@]}"  ]]
-            # if [[ "${CIRCLE_WORKFLOW_ID:0:7}" =~ "${OldWorkflowID}" ]]
-            if [[ "${CIRCLE_WORKFLOW_ID:0:7}" != "${OldWorkflowID}" ]]
-            then
-                echo "___________________________DELETE CONFIMED !________________________________"
-                aws s3 rm "s3://udapeople-${OldWorkflowID}" --recursive
-                aws cloudformation delete-stack --stack-name "udapeople-backend-${OldWorkflowID}"
-                aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID}"
-            else
-                echo "___________________________CLEANUP SKIPPED :(________________________________"
-                echo ""
-                echo "Message:  There is nothing to clear..."
-            fi
+            echo "___________________________DELETE CONFIMED !________________________________"
+            echo "                                                                             "
+            echo "___________________________CLEANUP SKIPPED :(________________________________"
+            echo "                                                                             "
+            echo "                   Message:  There is nothing to clear...                    "
