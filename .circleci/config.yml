@@ -1,8 +1,11 @@
 version: 2.1
 
+
 orbs:
   slack: circleci/slack@4.1
 
+
+# Reusable Commands
 commands:
   destroy-environment:
     description: Destroy back-end and front-end cloudformation stacks given a workflow ID. 
@@ -77,6 +80,8 @@ commands:
             }
           event: fail
 
+
+# Workflows
 workflows:
   default:
     jobs:
@@ -113,6 +118,10 @@ workflows:
       - cleanup:
           requires: [cloudfront-update]
             
+            
+            
+# Images for CICD
+
 nodeImage:  &nodeImage
   docker:
       - image: circleci/node:13.8.0
@@ -145,6 +154,8 @@ baseImage:  &baseImage
   docker:
       - image: cimg/base:stable
 
+
+# Jobs
 jobs:
   Initiate-aws:
     <<: *amazonImage
@@ -511,7 +522,10 @@ jobs:
                 echo "!!! It failed!"
                 exit 1
             fi
-
+      - destroy-environment:
+          workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
+      - revert-migrations:
+          workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
   cloudfront-update:
     <<: *amazonImage
     steps:
