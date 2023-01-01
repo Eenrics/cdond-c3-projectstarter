@@ -107,7 +107,6 @@ commands:
 workflows:
   default:
     jobs:
-      - deploy-frontend
       - deploy-backend
       - smoke-test:
           requires: [deploy-backend, deploy-frontend]
