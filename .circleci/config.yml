@@ -529,7 +529,10 @@ jobs:
 
             # PUT BUCKETS INTO ARRAY VARIABLE
             BUCKET_LISTS=$(cat s3.lists | sed  's/^.*\(udapeople-.*\)$/\1/g' | tr " " "\n")
-
+            
+            # ---DELETE ME----
+            CIRCLE_WORKFLOW_ID=1559aad
+            
             # ITERATE THROUGH BUCKETS
             for BUCKET in $BUCKET_LISTS; do (if [[ "$BUCKET" != "udapeople-${CIRCLE_WORKFLOW_ID:0:7}" ]]; then echo " > DELETING BUCKET $BUCKET"; aws s3 rm "s3://${BUCKET}" --recursive; aws s3 rb "s3://${BUCKET}"; else echo " > MOVING TO THE NEXT BUCKET"; fi;); done
       - run:
@@ -542,7 +545,7 @@ jobs:
             ALL_STACKS=$(cat stack.lists |  sed  's/^.*\(udapeople-.*\)$/\1/g' | tr " " "\n")
 
             # ITERATE THROUGH STACKS
-            for STACK in $ALL_STACKS; do (if [[ "$STACK" =~ "${CIRCLE_WORKFLOW_ID:0:7}" ]]; then echo " > SKIPPING BUCKET $STACK"; else echo " > DELETING BUCKET $STACK"; aws cloudformation delete-stack --stack-name "$STACK"; fi;); done
+            for STACK in $ALL_STACKS; do (if [[ "$STACK" == "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" ]] || [[ "$STACK" == "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}" ]]; then echo " > SKIPPING BUCKET $STACK"; else echo " > DELETING BUCKET $STACK"; aws cloudformation delete-stack --stack-name $STACK; fi;); done
       - run:
           name: Remove old stacks and files
           command: |
