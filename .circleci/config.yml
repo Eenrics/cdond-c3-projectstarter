@@ -85,7 +85,38 @@ commands:
 workflows:
   default:
     jobs:
-      - cleanup
+      - Initiate-aws
+      - build-frontend:
+          requires: [Initiate-aws]
+      - build-backend:
+          requires: [Initiate-aws]
+      - test-frontend:
+          requires: [build-frontend]
+      - test-backend:
+          requires: [build-backend]
+      - scan-backend:
+          requires: [build-backend]
+      - scan-frontend:
+          requires: [build-frontend]
+      - deploy-infrastructure:
+          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+          filters:
+            branches:
+              only: [master]
+      - configure-infrastructure:
+          requires: [deploy-infrastructure]
+      - run-migrations:
+          requires: [configure-infrastructure]
+      - deploy-frontend:
+          requires: [run-migrations]
+      - deploy-backend:
+          requires: [run-migrations]
+      - smoke-test:
+          requires: [deploy-backend, deploy-frontend]
+      - cloudfront-update:
+          requires: [smoke-test]
+      - cleanup:
+          requires: [cloudfront-update]
             
             
             
@@ -474,7 +505,7 @@ jobs:
             if (curl -s $BACKEND_URL_SMOKE | grep "ok")
             then
               echo "It Worked"
-              exit 0
+              exit 1
             else
               echo "It Failed"
               exit 1
