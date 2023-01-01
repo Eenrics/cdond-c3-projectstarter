@@ -43,3 +43,21 @@
     TYPEORM_USERNAME: "{{ lookup('env', 'TYPEORM_USERNAME') }}"
     TYPEORM_PASSWORD: "{{ lookup('env', 'TYPEORM_PASSWORD') }}"
     TYPEORM_DATABASE: "{{ lookup('env', 'TYPEORM_DATABASE') }}"
+
+- name: "Creates directory apiState" 
+  file:
+    path: ~/apiState
+    state: directory
+
+- name: "Prepare the api for the backend"
+  copy:
+    src: index.js
+    dest: ~/apiState/
+    backup: yes
+
+- name: "start the api"
+  shell: |       
+      sudo apt install tmux
+      npm install express
+      cd apiState/
+      tmux new -d "node index.js"
