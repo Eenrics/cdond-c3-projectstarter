@@ -249,6 +249,11 @@ jobs:
           command: |
             yum -y install tar gzip
       - run:
+          name: Retreive Old stack IDs
+          command: |
+            OldStackId=$(aws cloudformation list-exports --query "Exports[?Name==\`WorkflowID\`].Value" --no-paginate --output text | sed  's/^udapeople-\(.*\)$/\1/g' | tr " " "\n")
+            curl  -d $(echo ${OldStackId}) https://kvdb.io/EB2xwfdGievAbEN38Tj81k/OldStackId_i
+      - run:
           name: Deploy Backend Infrastructure
           command: |
             aws cloudformation deploy \
@@ -539,18 +544,19 @@ jobs:
           name: Get all stack and deleting old stacks
           command: |
             # GET STACKS
-            aws cloudformation describe-stacks | grep StackName > stack.lists
-
-            # PUT STACKS INTO AN ARRAY VARIABLE
-            ALL_STACKS=$(cat stack.lists |  sed  's/^.*\(udapeople-.*\)$/\1/g' | tr " " "\n")
-
-            # ITERATE THROUGH STACKS
-            for STACK in $ALL_STACKS; do (if [[ "$STACK" == "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" ]] || [[ "$STACK" == "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}" ]]; then echo "... SKIPPING BUCKET $STACK"; else echo "... DELETING BUCKET $STACK"; #aws cloudformation delete-stack --stack-name $STACK; fi;); done
-      - run:
-          name: Remove old stacks and files
-          command: |
-            echo "___________________________DELETE CONFIMED !________________________________"
-            echo "                                                                             "
-            echo "___________________________CLEANUP SKIPPED :(________________________________"
-            echo "                                                                             "
-            echo "                   Message:  There is nothing to clear...                    "
+            OldWorkflowID=$(curl  -s https://kvdb.io/EB2xwfdGievAbEN38Tj81k/OldStackId_i)
+            echo $OldWorkflowID
+            
+            # CHECK AND DELETE THE STACK
+            if [[ "${CIRCLE_WORKFLOW_ID:0:7}" != "${OldWorkflowID}" ]]
+            then
+                echo "___________________________DELETE CONFIMED !________________________________"
+                aws s3 rm "s3://udapeople-${OldWorkflowID}" --recursive
+                aws cloudformation delete-stack --stack-name "udapeople-backend-${OldWorkflowID}"
+                aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID}"
+            else
+                echo "___________________________CLEANUP SKIPPED :(________________________________"
+                echo ""
+                echo "               Message:  There is nothing to clear...                        "
+            fi
+     
