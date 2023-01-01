@@ -471,7 +471,8 @@ jobs:
       - run:
           name: Frontend smoke test.
           command: |
-            FRONTEND_URL_SMOKE="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com/#/employees"
+            #FRONTEND_URL_SMOKE="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com/#/employees"
+            FRONTEND_URL_SMOKE="http://udapeople-3c7dbb5.s3-website-us-east-1.amazonaws.com/#/employees"
             echo ${FRONTEND_URL_SMOKE}
             curl  -s "${FRONTEND_URL_SMOKE}" > frontend.reponse
             curl  -sI "${FRONTEND_URL_SMOKE}" > frontend.status
