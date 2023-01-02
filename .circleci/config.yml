@@ -58,7 +58,8 @@ commands:
           name: Revert migrations
           when: on_fail
           command: |
-            SUCCESS=$(curl --insecure https://kvdb.io/EB2xwfdGievAbEN38Tj81k/migration_${<< parameters.workflow_id >>})
+            SUCCESS=$(1)
+            #SUCCESS=$(curl --insecure https://kvdb.io/EB2xwfdGievAbEN38Tj81k/migration_${<< parameters.workflow_id >>})
             echo ${SUCCESS}
             if (( $SUCCESS == 1 ));
             then
@@ -94,9 +95,7 @@ commands:
 workflows:
   default:
     jobs:
-      - run-migrations
-      - smoke-test:
-          requires: [run-migrations]
+      - smoke-test
       - cloudfront-update:
           requires: [smoke-test]
       - cleanup:
