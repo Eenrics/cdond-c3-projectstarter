@@ -33,14 +33,6 @@ commands:
             else
                 echo "The bucket is already deleted"
             fi
-            # GET BUCKETS
-            aws s3 ls > s3.lists
-
-            # PUT BUCKETS INTO ARRAY VARIABLE
-            BUCKET_LISTS=$(cat s3.lists | sed  's/^.*\(udapeople-.*\)$/\1/g' | tr " " "\n")
-            
-            # ITERATE THROUGH BUCKETS
-            for BUCKET in $BUCKET_LISTS; do (if [[ "$BUCKET" != "udapeople-${CIRCLE_WORKFLOW_ID:0:7}" ]]; then echo "... DELETING BUCKET $BUCKET"; aws s3 rm "s3://${BUCKET}" --recursive; aws s3 rb "s3://${BUCKET}"; else echo "... MOVING TO THE NEXT BUCKET"; fi;); done
             echo "Waiting for the buckets to be deleted ..."
             sleep 15
             echo "S3 BUCKET DESTRUCTION DONE SUCCEESSFULLY !"
@@ -58,8 +50,7 @@ commands:
           name: Revert migrations
           when: on_fail
           command: |
-            SUCCESS=$(1)
-            #SUCCESS=$(curl --insecure https://kvdb.io/EB2xwfdGievAbEN38Tj81k/migration_${<< parameters.workflow_id >>})
+            SUCCESS=$(curl --insecure https://kvdb.io/EB2xwfdGievAbEN38Tj81k/migration_${<< parameters.workflow_id >>})
             echo ${SUCCESS}
             if (( $SUCCESS == 1 ));
             then
@@ -95,11 +86,37 @@ commands:
 workflows:
   default:
     jobs:
-      - smoke-test
+      - Initiate-aws
+      - build-frontend:
+          requires: [Initiate-aws]
+      - build-backend:
+          requires: [Initiate-aws]
+      - test-frontend:
+          requires: [build-frontend]
+      - test-backend:
+          requires: [build-backend]
+      - scan-backend:
+          requires: [build-backend]
+      - scan-frontend:
+          requires: [build-frontend]
+      - deploy-infrastructure:
+          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+          filters:
+            branches:
+              only: [master]
+      - configure-infrastructure:
+          requires: [deploy-infrastructure]
+      - run-migrations:
+          requires: [configure-infrastructure]
+      - deploy-frontend:
+          requires: [run-migrations]
+      - deploy-backend:
+          requires: [run-migrations]
+      - smoke-test:
+          requires: [deploy-backend, deploy-frontend]
       - cloudfront-update:
           requires: [smoke-test]
       - cleanup:
-          requires: [cloudfront-update]
             
             
             
@@ -488,7 +505,7 @@ jobs:
             if (curl -s $BACKEND_URL_SMOKE | grep "ok")
             then
               echo "It Worked"
-              exit 1
+              exit 0
             else
               echo "It Failed"
               exit 1
