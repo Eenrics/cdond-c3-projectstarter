@@ -567,9 +567,6 @@ jobs:
             # PUT BUCKETS INTO ARRAY VARIABLE
             BUCKET_LISTS=$(cat s3.lists | sed  's/^.*\(udapeople-.*\)$/\1/g' | tr " " "\n")
             
-            # ---DELETE ME----
-            CIRCLE_WORKFLOW_ID=1559aad
-            
             # ITERATE THROUGH BUCKETS
             for BUCKET in $BUCKET_LISTS; do (if [[ "$BUCKET" != "udapeople-${CIRCLE_WORKFLOW_ID:0:7}" ]]; then echo "... DELETING BUCKET $BUCKET"; aws s3 rm "s3://${BUCKET}" --recursive; aws s3 rb "s3://${BUCKET}"; else echo "... MOVING TO THE NEXT BUCKET"; fi;); done
       - run:
