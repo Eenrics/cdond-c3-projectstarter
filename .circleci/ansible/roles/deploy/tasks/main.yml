@@ -5,7 +5,7 @@
 - name: "Copy files to server"
   become: true
   copy:
-    src: "~/project/artifact.tar.gz"
+    src: "artifact.tar.gz"
     dest: "/home/ubuntu/backend/artifact.tar.gz"
 - name: "Unzip files as backend folder"
   command: tar -xzf artifact.tar.gz
