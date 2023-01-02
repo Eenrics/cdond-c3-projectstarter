@@ -9,6 +9,16 @@ Resources:
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo apt update -y
+          sudo apt upgrade -y
+          sudo apt install tmux
+          wget https://github.com/prometheus/alertmanager/releases/download/v0.25.0/alertmanager-0.25.0.linux-amd64.tar.gz
+          tar xvfz alertmanager-0.25.0.linux-amd64.tar.gz
+          wget https://github.com/prometheus/prometheus/releases/download/v2.41.0/prometheus-2.41.0.linux-amd64.tar.gz
+          tar xvfz prometheus-2.41.0.linux-amd64.tar.gz
       GroupName: !Sub UdaPeople-${ID}
       GroupDescription: Allow port 22 and port 3030.
       SecurityGroupIngress:
