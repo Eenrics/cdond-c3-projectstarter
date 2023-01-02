@@ -22,14 +22,14 @@ commands:
             if [[ "$(aws s3 ls)" =~ "udapeople-my920252436563bucket" ]]
             then
                 aws s3 rm s3://udapeople-my920252436563bucket/* --recursive
-                aws s3 rb s3://udapeople-my920252436563bucket
+                #aws s3 rb s3://udapeople-my920252436563bucket
             else
                 echo "The bucket is already deleted"
             fi
             if [[ "$(aws s3 ls)" =~ "udapeople-${<< parameters.workflow_id >>}" ]]
             then
                 aws s3 rm s3://udapeople-${<< parameters.workflow_id >>}/* --recursive
-                aws s3 rb s3://udapeople-${<< parameters.workflow_id >>}
+                #aws s3 rb s3://udapeople-${<< parameters.workflow_id >>}
             else
                 echo "The bucket is already deleted"
             fi
@@ -94,34 +94,7 @@ commands:
 workflows:
   default:
     jobs:
-      - Initiate-aws
-      - build-frontend:
-          requires: [Initiate-aws]
-      - build-backend:
-          requires: [Initiate-aws]
-      - test-frontend:
-          requires: [build-frontend]
-      - test-backend:
-          requires: [build-backend]
-      - scan-backend:
-          requires: [build-backend]
-      - scan-frontend:
-          requires: [build-frontend]
-      - deploy-infrastructure:
-          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
-          filters:
-            branches:
-              only: [master]
-      - configure-infrastructure:
-          requires: [deploy-infrastructure]
-      - run-migrations:
-          requires: [configure-infrastructure]
-      - deploy-frontend:
-          requires: [run-migrations]
-      - deploy-backend:
-          requires: [run-migrations]
-      - smoke-test:
-          requires: [deploy-backend, deploy-frontend]
+      - smoke-test
       - cloudfront-update:
           requires: [smoke-test]
       - cleanup:
