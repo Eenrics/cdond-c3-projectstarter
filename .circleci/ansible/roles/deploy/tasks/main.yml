@@ -1,7 +1,4 @@
 ---
-- name: "Make backend directory"
-  become: true
-  command: mkdir backend
 - name: "Copy files to server"
   become: true
   copy:
