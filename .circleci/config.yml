@@ -22,14 +22,14 @@ commands:
             if [[ "$(aws s3 ls)" =~ "udapeople-my920252436563bucket" ]]
             then
                 aws s3 rm s3://udapeople-my920252436563bucket/* --recursive
-                #aws s3 rb s3://udapeople-my920252436563bucket
+                aws s3 rb s3://udapeople-my920252436563bucket
             else
                 echo "The bucket is already deleted"
             fi
             if [[ "$(aws s3 ls)" =~ "udapeople-${<< parameters.workflow_id >>}" ]]
             then
                 aws s3 rm s3://udapeople-${<< parameters.workflow_id >>}/* --recursive
-                #aws s3 rb s3://udapeople-${<< parameters.workflow_id >>}
+                aws s3 rb s3://udapeople-${<< parameters.workflow_id >>}
             else
                 echo "The bucket is already deleted"
             fi
@@ -506,7 +506,7 @@ jobs:
             if (curl -s $BACKEND_URL_SMOKE | grep "ok")
             then
               echo "It Worked"
-              exit 1
+              exit 0
             else
               echo "It Failed"
               exit 1
