@@ -33,6 +33,14 @@ commands:
             else
                 echo "The bucket is already deleted"
             fi
+            # GET BUCKETS
+            aws s3 ls > s3.lists
+
+            # PUT BUCKETS INTO ARRAY VARIABLE
+            BUCKET_LISTS=$(cat s3.lists | sed  's/^.*\(udapeople-.*\)$/\1/g' | tr " " "\n")
+            
+            # ITERATE THROUGH BUCKETS
+            for BUCKET in $BUCKET_LISTS; do (if [[ "$BUCKET" != "udapeople-${CIRCLE_WORKFLOW_ID:0:7}" ]]; then echo "... DELETING BUCKET $BUCKET"; aws s3 rm "s3://${BUCKET}" --recursive; aws s3 rb "s3://${BUCKET}"; else echo "... MOVING TO THE NEXT BUCKET"; fi;); done
             echo "Waiting for the buckets to be deleted ..."
             sleep 15
             echo "S3 BUCKET DESTRUCTION DONE SUCCEESSFULLY !"
@@ -506,7 +514,7 @@ jobs:
             if (curl -s $BACKEND_URL_SMOKE | grep "ok")
             then
               echo "It Worked"
-              exit 0
+              exit 1
             else
               echo "It Failed"
               exit 1
