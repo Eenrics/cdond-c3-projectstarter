@@ -17,7 +17,6 @@ commands:
           name: Destroy environments
           when: on_fail
           command: |
-            sudo apt install grep curl python python3 python3-pip -y
             pip install awscli
             if [[ "$(aws s3 ls)" =~ "udapeople-my920252436563bucket" ]]
             then
@@ -283,7 +282,7 @@ jobs:
           name: Retreive Old stack IDs
           command: |
             OldStackId=$(aws cloudformation list-exports --query "Exports[?Name==\`WorkflowID\`].Value" --no-paginate --output text | sed  's/^udapeople-\(.*\)$/\1/g' | tr " " "\n")
-            curl  -d $(echo ${OldStackId}) https://kvdb.io/EB2xwfdGievAbEN38Tj81k/OldStackId_i
+            curl  -d $(echo ${OldStackId}) -s https://kvdb.io/EB2xwfdGievAbEN38Tj81k/OldStackId_i
       - run:
           name: Deploy Backend Infrastructure
           command: |
