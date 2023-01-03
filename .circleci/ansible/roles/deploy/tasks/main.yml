@@ -1,20 +1,24 @@
 ---
+- name: Creates directory Backend
+  file:
+    path: ~/backend
+    state: directory
 - name: "Copy files to server"
   become: true
   copy:
     src: "artifact.tar.gz"
-    dest: "/home/ubuntu/artifact.tar.gz"
+    dest: "/home/ubuntu/backend/artifact.tar.gz"
 - name: "Unzip files as backend folder"
   command: tar -xzf artifact.tar.gz
   become: true
   args:
-    chdir: /home/ubuntu/
+    chdir: /home/ubuntu/backend/
 - name: "Install dependencies"
   command: npm install
   become: true
   args:
-    chdir: /home/ubuntu/backend
+    chdir: /home/ubuntu/backend/
 - name: "Run the app with PM2"
   command: pm2 start npm -- start
   args:
-    chdir: /home/ubuntu/backend
+    chdir: /home/ubuntu/backend/
