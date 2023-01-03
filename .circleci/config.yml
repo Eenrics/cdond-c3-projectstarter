@@ -41,7 +41,7 @@ commands:
             #echo "CLOUDFORMATION DESTRUCTION DONE SUCCEESSFULLY !"
             echo "Destroying environment started ...."
             aws s3 rm s3://udapeople-${<<parameters.workflow_id>>}/* --recursive
-            aws s3 rb s3://udapeople-${<<parameters.workflow_id>>}
+            aws s3 rb --force s3://udapeople-${<<parameters.workflow_id>>}
             aws cloudformation delete-stack --stack-name udapeople-frontend-${<<parameters.workflow_id>>}
             aws cloudformation delete-stack --stack-name udapeople-backend-${<<parameters.workflow_id>>}
             echo "________________ENV DESTROYED __________________________--------______---_-_-"
@@ -496,7 +496,7 @@ jobs:
             if (curl -s $BACKEND_URL_SMOKE | grep "ok")
             then
               echo "It Worked"
-              exit 0
+              exit 1
             else
               echo "It Failed"
               exit 1
@@ -562,7 +562,7 @@ jobs:
             echo Old Workflow ID: $OldWorkflowID
             
             # ITERATE THROUGH BUCKETS
-            for BUCKET in $BUCKET_LISTS; do (if [[ "$BUCKET" == "udapeople-${OldWorkflowID}" ]]; then echo "... DELETING BUCKET $BUCKET"; aws s3 rm "s3://${BUCKET}" --recursive; aws s3 rb "s3://${BUCKET}"; else echo "... MOVING TO THE NEXT BUCKET"; fi;); done
+            for BUCKET in $BUCKET_LISTS; do (if [[ "$BUCKET" == "udapeople-${OldWorkflowID}" ]]; then echo "... DELETING BUCKET $BUCKET"; aws s3 rm "s3://${BUCKET}" --recursive; aws s3 rb --force "s3://${BUCKET}"; else echo "... MOVING TO THE NEXT BUCKET"; fi;); done
       - run:
           name: Get all stack and deleting old stacks
           command: |
