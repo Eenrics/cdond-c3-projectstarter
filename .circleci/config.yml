@@ -198,7 +198,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          keys: [frontend-build]
+          keys: [frontend-deps]
       - run:
           name: Build front-end
           command: |
@@ -207,13 +207,13 @@ jobs:
             npm run build
       - save_cache:
           paths: [frontend/node_modules]
-          key: frontend-build
+          key: frontend-deps
   build-backend:
     <<: *nodeImage
     steps:
       - checkout
       - restore_cache:
-          keys: [backend-build]
+          keys: [backend-deps]
       - run:
           name: Back-end build
           command: |
@@ -222,13 +222,13 @@ jobs:
             npm run build
       - save_cache:
           paths: [backend/node_modules]
-          key: backend-build
+          key: backend-deps
   test-frontend:
     <<: *nodeImage
     steps:
       - checkout
       - restore_cache:
-          keys: [frontend-build]
+          keys: [frontend-deps]
       - run:
           name: Front-end test
           command: |
@@ -240,7 +240,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          keys: [backend-build]
+          keys: [backend-deps]
       - run:
           name: Back-end test
           command: |
@@ -252,7 +252,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          keys: [frontend-build]
+          keys: [frontend-deps]
       - run:
           name: Front-end scan
           command: |
@@ -268,7 +268,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          keys: [backend-build]
+          keys: [backend-deps]
       - run:
           name: Back-end scan
           command: |
@@ -370,7 +370,6 @@ jobs:
           command: |
             cd backend
             npm install
-            # Run and save the migration output
             npm run migrations > migrations_dump.txt
       - run:
           name: Send database migration status to kvdb.io
@@ -398,7 +397,7 @@ jobs:
             curl -sL https://rpm.nodesource.com/setup_10.x | bash -
             yum install -y nodejs
       - restore_cache:
-          keys: [frontend-build]
+          keys: [frontend-deps]
       - run:
           name: npm install
           command: |
@@ -434,7 +433,7 @@ jobs:
       - add_ssh_keys:
           fingerprints: ["79:d2:0d:a5:58:f0:43:8a:64:b4:94:fa:42:27:9e:e4"]
       - restore_cache:
-          keys: [backend-build]
+          keys: [backend-deps]
       - attach_workspace:
           at: ~/
       - run:
@@ -588,19 +587,22 @@ jobs:
           name: Get all stack and deleting old stacks
           command: |
             # GET STACKS
-            OldWorkflowID=$(curl  -s https://kvdb.io/EB2xwfdGievAbEN38Tj81k/OldStackId_i)
-            echo $OldWorkflowID
-            
-            # CHECK AND DELETE THE STACK
-            #if [[ "${CIRCLE_WORKFLOW_ID:0:7}" != "${OldWorkflowID}" ]]
-            if [[ "${OldWorkflowID}" ]]
+            #OldWorkflowID=$(curl  -s https://kvdb.io/EB2xwfdGievAbEN38Tj81k/OldStackId_i)
+            #echo $OldWorkflowID
+            export STACKS=($(aws cloudformation list-stacks \
+                --query "StackSummaries[*].StackName" \
+                --stack-status-filter CREATE_COMPLETE --no-paginate --output text)) 
+            echo Stack names: "${STACKS[@]}"
+            export OldWorkflowID=$(curl  -s https://kvdb.io/EB2xwfdGievAbEN38Tj81k/OldStackId_i)
+            echo Old Workflow ID: $OldWorkflowID 
+            if [[ "${STACKS[@]}" =~ "${OldWorkflowID}" ]]
             then
                 echo "___________________________DELETE CONFIMED !________________________________"
+                aws cloudformation delete-stack --stack-name udapeople-backend-${OldWorkflowID}
+                echo "deleting backend cloudformation stack with id ${OldWorkflowID}"
                 aws s3 rm s3://udapeople-${OldWorkflowID}/* --recursive
                 aws s3 rb s3://udapeople-${OldWorkflowID}
                 aws cloudformation delete-stack --stack-name udapeople-frontend-${OldWorkflowID}
-                echo "deleting backend cloudformation stack with id ${OldWorkflowID}"
-                aws cloudformation delete-stack --stack-name udapeople-backend-${OldWorkflowID}
                 echo "deleting backend cloudformation stack with id ${OldWorkflowID}"
                 echo "_________________CLEANUP COMP____________-------___---__-_-     :) Enjoy updated app"
             else
