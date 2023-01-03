@@ -94,11 +94,8 @@ commands:
 workflows:
   default:
     jobs:
-      - Initiate-aws
-      - build-frontend:
-          requires: [Initiate-aws]
-      - build-backend:
-          requires: [Initiate-aws]
+      - build-frontend
+      - build-backend
       - test-frontend:
           requires: [build-frontend]
       - test-backend:
@@ -169,30 +166,6 @@ ubuntuImage:  &ubuntuImage
 
 # Jobs
 jobs:
-  Initiate-aws:
-    <<: *amazonImage
-    steps:
-      - checkout
-      - run:
-          name: Initiate s3 buckets 
-          command: |
-            if [[ "$(aws s3 ls)" ]]
-            then 
-                echo "There is aws s3 bucket already!"
-                echo "Instantiation Succeeded ..."
-            else 
-                echo "No s3 bucket found"
-                echo "Creating one for you ..."
-                echo "Instantiation began ..."
-                aws s3api create-bucket --bucket udapeople-my920252436563bucket
-                echo "Creating cloudfront for your bucket"
-                cd .circleci/files
-                aws cloudformation deploy \
-                          --template-file cloudfront.yml \
-                          --stack-name InitialStack\
-                          --parameter-overrides WorkflowID=udapeople-my920252436563bucket
-                echo "Instantiation Succeeded ..."
-            fi
   build-frontend:
     <<: *nodeImage
     steps:
@@ -523,7 +496,7 @@ jobs:
             if (curl -s $BACKEND_URL_SMOKE | grep "ok")
             then
               echo "It Worked"
-              exit 1
+              exit 0
             else
               echo "It Failed"
               exit 1
@@ -581,8 +554,12 @@ jobs:
             # PUT BUCKETS INTO ARRAY VARIABLE
             BUCKET_LISTS=$(cat s3.lists | sed  's/^.*\(udapeople-.*\)$/\1/g' | tr " " "\n")
             
+            # GET OLD WORKFLOW ID
+            export OldWorkflowID=$(curl  -s https://kvdb.io/EB2xwfdGievAbEN38Tj81k/OldStackId_i)
+            echo Old Workflow ID: $OldWorkflowID
+            
             # ITERATE THROUGH BUCKETS
-            for BUCKET in $BUCKET_LISTS; do (if [[ "$BUCKET" != "udapeople-${CIRCLE_WORKFLOW_ID:0:7}" ]]; then echo "... DELETING BUCKET $BUCKET"; aws s3 rm "s3://${BUCKET}" --recursive; aws s3 rb "s3://${BUCKET}"; else echo "... MOVING TO THE NEXT BUCKET"; fi;); done
+            for BUCKET in $BUCKET_LISTS; do (if [[ "$BUCKET" == "udapeople-${OldWorkflowID}" ]]; then echo "... DELETING BUCKET $BUCKET"; aws s3 rm "s3://${BUCKET}" --recursive; aws s3 rb "s3://${BUCKET}"; else echo "... MOVING TO THE NEXT BUCKET"; fi;); done
       - run:
           name: Get all stack and deleting old stacks
           command: |
@@ -600,8 +577,6 @@ jobs:
                 echo "___________________________DELETE CONFIMED !________________________________"
                 aws cloudformation delete-stack --stack-name udapeople-backend-${OldWorkflowID}
                 echo "deleting backend cloudformation stack with id ${OldWorkflowID}"
-                aws s3 rm s3://udapeople-${OldWorkflowID}/* --recursive
-                aws s3 rb s3://udapeople-${OldWorkflowID}
                 aws cloudformation delete-stack --stack-name udapeople-frontend-${OldWorkflowID}
                 echo "deleting backend cloudformation stack with id ${OldWorkflowID}"
                 echo "_________________CLEANUP COMP____________-------___---__-_-     :) Enjoy updated app"
