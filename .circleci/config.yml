@@ -281,8 +281,8 @@ jobs:
       - run:
           name: Retreive Old stack IDs
           command: |
-            OldStackId=$(aws cloudformation list-exports --query "Exports[?Name==\`WorkflowID\`].Value" --no-paginate --output text | sed  's/^udapeople-\(.*\)$/\1/g' | tr " " "\n")
-            curl  -d $(echo ${OldStackId}) -s https://kvdb.io/EB2xwfdGievAbEN38Tj81k/OldStackId_i
+            #OldStackId=$(aws cloudformation list-exports --query "Exports[?Name==\`WorkflowID\`].Value" --no-paginate --output text | sed  's/^udapeople-\(.*\)$/\1/g' | tr " " "\n")
+            #curl  -d $(echo ${OldStackId}) -s https://kvdb.io/EB2xwfdGievAbEN38Tj81k/OldStackId_i
       - run:
           name: Deploy Backend Infrastructure
           command: |
@@ -386,6 +386,13 @@ jobs:
             yum install -y curl tar gzip
             curl -sL https://rpm.nodesource.com/setup_10.x | bash -
             yum install -y nodejs
+      - restore_cache:
+          keys: [frontend-build]
+      - run:
+          name: npm install
+          command: |
+            cd frontend
+            npm install
       - run:
           name: Get backend url
           command: |
@@ -395,12 +402,10 @@ jobs:
             echo API_URL="http://${BACKEND_IP}:3030" >> frontend/.env
             cat frontend/.env
       - run:
-          name: Deploy frontend objects
+          name: build frontend
           command: |
-            cd frontend
-            npm install
             npm run build
-            tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
+            #tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
             aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
       - persist_to_workspace:
           root: .
@@ -416,6 +421,8 @@ jobs:
       - checkout
       - add_ssh_keys:
           fingerprints: ["79:d2:0d:a5:58:f0:43:8a:64:b4:94:fa:42:27:9e:e4"]
+      - restore_cache:
+          keys: [backend-build]
       - attach_workspace:
           at: ~/
       - run:
@@ -438,12 +445,18 @@ jobs:
             cat .circleci/ansible/inventory.txt
             ls .circleci/ansible
       - run:
-          name: Deploy backend
+          name: npm install
           command: |
             cd backend
-            npm i
+            npm install
+      - run:
+          name: Package Backend
+          command: |
+            cd backend
             npm run build
+            tar -czf artifact.tar.gz dist/* package*
             cd ..
+            cp backend/artifact.tar.gz .circleci/ansible/roles/deploy/files
       - run:
           name: Add env vars
           command: |
@@ -458,21 +471,14 @@ jobs:
               echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "backend/dist/.env"
               echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/dist/.env"
       - run:
-          name: Configure server
+          name: Deploy backend
           command: |
-              tar -C backend -czvf artifact.tar.gz .
-              mkdir -p .circleci/ansible/roles/deploy/files/
-              mv ./artifact.tar.gz .circleci/ansible/roles/deploy/files/
-              cd .circleci/ansible
-              echo "Contents  of the inventory.txt file is -------"
-              cat inventory.txt
-      - run:
-          name: Run Ansible
-          command: |
-              cd ./.circleci/ansible
-              echo "Contents  of the inventory.txt file is _____________________________________>>"
-              cat inventory.txt
-              ansible-playbook -i inventory.txt deploy-backend.yml
+            export TYPEORM_MIGRATIONS_DIR=./migrations
+            export TYPEORM_ENTITIES=./modules/domain/**/*.entity{.ts,.js}
+            export TYPEORM_MIGRATIONS=./migrations/*.ts
+            cd .circleci/ansible
+            cat inventory.txt
+            ansible-playbook -i inventory.txt deploy-backend.yml
       - destroy-environment:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
       - revert-migrations:
@@ -545,7 +551,7 @@ jobs:
             aws cloudformation deploy \
               --template-file .circleci/files/cloudfront.yml \
               --stack-name InitialStack \
-              --parameter-overrides WorkflowID="udapeople-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID:0:7}" \
               --tags project=udapeople
       - destroy-environment:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
@@ -574,14 +580,18 @@ jobs:
             echo $OldWorkflowID
             
             # CHECK AND DELETE THE STACK
-            if [[ "${CIRCLE_WORKFLOW_ID:0:7}" != "${OldWorkflowID}" ]]
+            #if [[ "${CIRCLE_WORKFLOW_ID:0:7}" != "${OldWorkflowID}" ]]
+            if [[ "${OldWorkflowID}" ]]
             then
                 echo "___________________________DELETE CONFIMED !________________________________"
                 aws cloudformation delete-stack --stack-name "udapeople-backend-${OldWorkflowID}"
+                echo "deleting backend cloudformation stack with id ${OldWorkflowID}"
                 aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID}"
+                echo "deleting frontend cloudformation stack with id ${OldWorkflowID}"
             else
                 echo "___________________________CLEANUP SKIPPED :(________________________________"
                 echo ""
                 echo "               Message:  There is nothing to clear...                        "
             fi
+            curl  -d $(echo ${CIRCLE_WORKFLOW_ID:0:7}) -s https://kvdb.io/EB2xwfdGievAbEN38Tj81k/OldStackId_i
      
