@@ -25,19 +25,19 @@ commands:
             else
                 echo "The bucket is already deleted"
             fi
-            if [[ "$(aws s3 ls)" =~ "udapeople-${<< parameters.workflow_id >>}" ]]
+            if [[ "$(aws s3 ls)" =~ "udapeople-${<<parameters.workflow_id>>}" ]]
             then
-                aws s3 rm s3://udapeople-${<< parameters.workflow_id >>}/* --recursive
-                #aws s3 rb s3://udapeople-${<< parameters.workflow_id >>}
+                aws s3 rm s3://udapeople-${<<parameters.workflow_id>>}/* --recursive
+                #aws s3 rb s3://udapeople-${<<parameters.workflow_id>>}
             else
                 echo "The bucket is already deleted"
             fi
             echo "Waiting for the buckets to be deleted ..."
             sleep 15
             echo "S3 BUCKET DESTRUCTION DONE SUCCEESSFULLY !"
-            aws cloudformation delete-stack --stack-name myStack-${<< parameters.workflow_id >>}
-            aws cloudformation delete-stack --stack-name udapeople-frontend-${<< parameters.workflow_id >>}
-            aws cloudformation delete-stack --stack-name udapeople-backend-${<< parameters.workflow_id >>}
+            aws cloudformation delete-stack --stack-name myStack-${<<parameters.workflow_id>>}
+            aws cloudformation delete-stack --stack-name udapeople-frontend-${<<parameters.workflow_id>>}
+            aws cloudformation delete-stack --stack-name udapeople-backend-${<<parameters.workflow_id>>}
             echo "CLOUDFORMATION DESTRUCTION DONE SUCCEESSFULLY !"
   revert-migrations:
     description: Revert the last migration with the given workflow ID.
@@ -51,13 +51,16 @@ commands:
           command: |
             SUCCESS=$(curl https://kvdb.io/EB2xwfdGievAbEN38Tj81k/migrationStatus_s)
             echo ${SUCCESS}
-            if (( $SUCCESS == 1 ));
+            if (( "${SUCCESS}" == "1" ))
             then
               cd ~/project/backend
               npm install
               npm run migrations:revert
+              echo "migration reverted successfully"
+            else
+              echo "MIGRATION NOT REVERTED"
             fi 
-            echo "MIGRATION NOT REVERTED"
+            echo "DONE !"
   notify-slack:
     description: Notify on slack everytime a job fails  
     steps:
@@ -370,8 +373,10 @@ jobs:
             then
               sudo apt install curl -y
               curl https://kvdb.io/EB2xwfdGievAbEN38Tj81k/migrationStatus_s -d '1'
+              echo "migrated successfully"
             else
               curl https://kvdb.io/EB2xwfdGievAbEN38Tj81k/migrationStatus_s -d '0'
+              echo "migration failed"
             fi
       - destroy-environment:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
@@ -404,6 +409,7 @@ jobs:
       - run:
           name: build frontend
           command: |
+            cd frontend
             npm run build
             #tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
             aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
