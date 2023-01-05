@@ -4,52 +4,89 @@ version: 2.1
 orbs:
   slack: circleci/slack@4.1
 
-
 # Reusable Commands
 commands:
+
+  install_awscli:
+    description: Install awscli
+    steps:
+      - run:
+          name: Install aws cli
+          command: |
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
+            
+  install_ansible:
+    description: Install ansible
+    steps:
+      - run:
+          name: Install ansible
+          command: |
+            sudo apt update
+            sudo apt install software-properties-common -y
+            sudo add-apt-repository --yes --update ppa:ansible/ansible
+            sudo apt install ansible -y
+            
+  install_nodejs:
+    description: Install node v13.8.0
+    steps:
+      - run:
+          name: Install nodejs v13.8.0
+          command: |
+            # Install Node.js LTS version as our base Node.js version
+            curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+            sudo apt install -y nodejs
+            # Use n version manager to use Node.js v13.8.0
+            sudo npm install --global n
+            sudo n 13.8.0
+            
+  install_curl:
+    description: Install curl
+    steps:
+      - run:
+          name: Install curl
+          command: |
+            apk update
+            apk upgrade
+            apk search curl
+            apk add curl
+            
+  install_openssh:
+    description: Install openssh
+    steps:
+      - run:
+          name: Install openssh
+          command: |
+            apk update
+            apk upgrade
+            apk search openssh
+            apk add openssh  
+            
   destroy-environment:
     description: Destroy back-end and front-end cloudformation stacks given a workflow ID. 
     parameters:
       workflow_id:
         type: string
+        default: "CIRCLE_WORKFLOW_ID:0:7"
     steps:
       - run:
           name: Destroy environments
           when: on_fail
           command: |
-            pip install awscli
-            #if [[ "$(aws s3 ls)" =~ "udapeople-my920252436563bucket" ]]
-            #then
-                #aws s3 rm s3://udapeople-my920252436563bucket/* --recursive
-                #aws s3 rb s3://udapeople-my920252436563bucket
-            #else
-                #echo "The bucket is already deleted"
-            #fi
-            #if [[ "$(aws s3 ls)" =~ "udapeople-${<<parameters.workflow_id>>}" ]]
-            #then
-                #aws s3 rm s3://udapeople-${<<parameters.workflow_id>>}/* --recursive
-                #aws s3 rb s3://udapeople-${<<parameters.workflow_id>>}
-            #else
-                #echo "The bucket is already deleted"
-            #fi
-            #echo "Waiting for the buckets to be deleted ..."
-            #sleep 15
-            #echo "S3 BUCKET DESTRUCTION DONE SUCCEESSFULLY !"
-            #aws cloudformation delete-stack --stack-name myStack-${<<parameters.workflow_id>>}
-            #aws cloudformation delete-stack --stack-name udapeople-frontend-${<<parameters.workflow_id>>}
-            #aws cloudformation delete-stack --stack-name udapeople-backend-${<<parameters.workflow_id>>}
-            #echo "CLOUDFORMATION DESTRUCTION DONE SUCCEESSFULLY !"
             echo "Destroying environment started ...."
             aws s3 rm s3://udapeople-${<<parameters.workflow_id>>}/* --recursive
             aws s3 rb --force s3://udapeople-${<<parameters.workflow_id>>}
             aws cloudformation delete-stack --stack-name udapeople-frontend-${<<parameters.workflow_id>>}
             aws cloudformation delete-stack --stack-name udapeople-backend-${<<parameters.workflow_id>>}
-            echo "________________ENV DESTROYED __________________________--------______---_-_-"
+            echo "__________________________________ENV DESTROYED ______________________________________"
+            
   revert-migrations:
     description: Revert the last migration with the given workflow ID.
     parameters:
       workflow_id:
         type: string
+        default: "CIRCLE_WORKFLOW_ID:0:7"
     steps:
       - run:
           name: Revert migrations
@@ -67,6 +104,7 @@ commands:
               echo "MIGRATION NOT REVERTED"
             fi 
             echo "DONE !"
+            
   notify-slack:
     description: Notify on slack everytime a job fails  
     steps:
@@ -124,12 +162,12 @@ workflows:
       - cleanup:
           requires: [cloudfront-update]      
             
-            
+
 # Images for CICD
 
 nodeImage:  &nodeImage
   docker:
-      - image: circleci/node:13.8.0
+      - image: cimg/node:13.8.0
       
 amazonImage:  &amazonImage
   docker:
@@ -138,14 +176,6 @@ amazonImage:  &amazonImage
 ansibleImage:  &ansibleImage
   docker:
       - image: python:3.7-alpine3.11
-      
-alpineImage:  &alpineImage
-  docker:
-      - image: alpine:latest
-      
-curlImage:  &curlImage
-  docker:
-      - image: cimg/node:19.3.0
 
 pythonImage:  &pythonImage
   docker:
@@ -158,10 +188,6 @@ pynodeImage:  &pynodeImage
 baseImage:  &baseImage
   docker:
       - image: cimg/base:stable
-      
-ubuntuImage:  &ubuntuImage
-  docker:
-      image: ubuntu-2004:2022.10.1
 
 
 # Jobs
@@ -181,6 +207,7 @@ jobs:
       - save_cache:
           paths: [frontend/node_modules]
           key: frontend-deps
+          
   build-backend:
     <<: *nodeImage
     steps:
@@ -196,6 +223,7 @@ jobs:
       - save_cache:
           paths: [backend/node_modules]
           key: backend-deps
+          
   test-frontend:
     <<: *nodeImage
     steps:
@@ -208,6 +236,7 @@ jobs:
             cd frontend
             npm install
             npm run test
+            
   test-backend:
     <<: *nodeImage
     steps:
@@ -220,6 +249,7 @@ jobs:
             cd backend
             npm install
             npm run test
+            
   scan-frontend:
     <<: *nodeImage
     steps:
@@ -231,11 +261,9 @@ jobs:
           command: |
             cd frontend
             npm install
-            npm audit fix --force
-            npm audit fix --audit-level=critical --force
-            # If the "npm audit fix" command above could not fix all critical vulnerabilities, try “npm audit fix --force” again
-            # npm install oauth-sign@^0.9.0
-            # npm audit --audit-level=critical
+            npm audit fix --force --audit-level=critical
+            npm audit --audit-level=critical
+            
   scan-backend:
     <<: *nodeImage
     steps:
@@ -247,11 +275,9 @@ jobs:
           command: |
             cd backend
             npm install
-            npm audit fix --force
-            npm audit fix --audit-level=critical --force
-            # If the "npm audit fix" command above could not fix all critical vulnerabilities, try “npm audit fix --force” again
-            # npm install oauth-sign@^0.9.0
-            # npm audit --audit-level=critical
+            npm audit fix --force --audit-level=critical
+            npm audit --audit-level=critical
+            
   deploy-infrastructure:
     <<: *amazonImage
     steps:
@@ -260,11 +286,6 @@ jobs:
           name: Install tar and gzip
           command: |
             yum -y install tar gzip
-      - run:
-          name: Retreive Old stack IDs
-          command: |
-            #OldStackId=$(aws cloudformation list-exports --query "Exports[?Name==\`WorkflowID\`].Value" --no-paginate --output text | sed  's/^udapeople-\(.*\)$/\1/g' | tr " " "\n")
-            #curl  -d $(echo ${OldStackId}) -s https://kvdb.io/EB2xwfdGievAbEN38Tj81k/OldStackId_i
       - run:
           name: Deploy Backend Infrastructure
           command: |
@@ -294,29 +315,23 @@ jobs:
             curl  -d $(cat kvdb.txt) https://kvdb.io/EB2xwfdGievAbEN38Tj81k/PublicIpAddress_i
       - destroy-environment:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
+          
   configure-infrastructure:
     <<: *ansibleImage
     steps:
       - checkout
       - add_ssh_keys:
           fingerprints: ["cd:6b:51:76:5b:ac:da:2a:15:0c:15:5c:c2:c5:7f:5e"]
+      - install_curl
+      - install_openssh
       - run:
           name: Install dependencies
           command: |
-            # install the dependencies needed for curl kvdb
-            apk update
-            apk upgrade
-            apk search curl
-            apk add curl
-            # install the dependencies needed for your playbook
+            # install the dependencies needed for your playbook and iac
             apk add --update ansible
-            # install the dependencies needed for your aws cli
+            apk add ansible
             pip install --upgrade pip
             pip install awscli
-            apk add ansible
-            # install the dependencies needed for your openssh
-            apk search openssh
-            apk add openssh
       - run:
           name: Retrieve Ip Address from KVDB
           command: |
@@ -333,12 +348,14 @@ jobs:
             ansible-playbook configure-server.yml -i inventory.txt
       - destroy-environment:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
+
   run-migrations:
-    <<: *curlImage
+    <<: *nodeImage
     steps:
       - checkout
       - restore_cache:
           keys: [backend-build]
+      - install_awscli
       - run:
           name: Run migrations
           command: |
@@ -359,21 +376,17 @@ jobs:
             fi
       - destroy-environment:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
+
   deploy-frontend:
-    <<: *amazonImage
+    <<: *baseImage
     steps:
       - checkout
-      - run:
-          name: Install dependencies
-          command: |
-            cd frontend
-            yum install -y curl tar gzip
-            curl -sL https://rpm.nodesource.com/setup_10.x | bash -
-            yum install -y nodejs
       - restore_cache:
           keys: [frontend-deps]
+      - install_awscli
+      - install_nodejs
       - run:
-          name: npm install
+          name: Install dependencies
           command: |
             cd frontend
             npm install
@@ -381,45 +394,35 @@ jobs:
           name: Get backend url
           command: |
             BACKEND_IP=$(curl -s https://kvdb.io/EB2xwfdGievAbEN38Tj81k/PublicIpAddress_i)
-            export API_URL="http://${BACKEND_IP}:3030"
-            echo "${API_URL}"
-            echo API_URL="http://${BACKEND_IP}:3030" >> frontend/.env
+            echo "API_URL=http://${BACKEND_IP}:3030" >> frontend/.env
             cat frontend/.env
       - run:
           name: build frontend
           command: |
             cd frontend
             npm run build
-            #tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
             aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
-      - persist_to_workspace:
-          root: .
-          paths:
-            - ./frontend/dist
       - destroy-environment:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
       - revert-migrations:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
+
   deploy-backend:
-    <<: *pynodeImage
+    <<: *baseImage
     steps:
       - checkout
-      - add_ssh_keys:
-          fingerprints: ["cd:6b:51:76:5b:ac:da:2a:15:0c:15:5c:c2:c5:7f:5e"]
       - restore_cache:
           keys: [backend-deps]
-      - attach_workspace:
-          at: ~/
+      - install_awscli
+      - install_ansible
+      - install_nodejs
+      - add_ssh_keys:
+          fingerprints: ["cd:6b:51:76:5b:ac:da:2a:15:0c:15:5c:c2:c5:7f:5e"]
       - run:
           name: Install dependencies
           command: |
-            # Upgrade the system
-            sudo apt update
-            sudo apt upgrade
-            sudo apt install -y curl tar gzip ansible
-            # Upgrade python and its packages
-            pip install --upgrade pip
-            pip install awscli
+            cd backend
+            npm install
       - run:
           name: Retrieve Ip Address from KVDB
           command: |
@@ -430,11 +433,6 @@ jobs:
             cat .circleci/ansible/inventory.txt
             ls .circleci/ansible
       - run:
-          name: npm install
-          command: |
-            cd backend
-            npm install
-      - run:
           name: Package Backend
           command: |
             cd backend
@@ -442,19 +440,6 @@ jobs:
             tar -czf artifact.tar.gz dist/* package*
             cd ..
             cp backend/artifact.tar.gz .circleci/ansible/roles/deploy/files
-      - run:
-          name: Add env vars
-          command: |
-              echo ENVIROMENT=production > "backend/dist/.env"
-              echo TYPEORM_CONNECTION=postgres >> "backend/dist/.env"
-              echo TYPEORM_ENTITIES=./modules/domain/**/*.entity{.ts,.js} >> "backend/dist/.env"
-              echo TYPEORM_HOST=$TYPEORM_HOST >> "backend/dist/.env"
-              echo TYPEORM_PORT=$TYPEORM_PORT >> "backend/dist/.env"
-              echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> "backend/dist/.env"
-              echo TYPEORM_MIGRATIONS=$TYPEORM_MIGRATIONS >> "backend/dist/.env"
-              echo TYPEORM_MIGRATIONS_DIR=$TYPEORM_MIGRATIONS_DIR >> "backend/dist/.env"
-              echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "backend/dist/.env"
-              echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/dist/.env"
       - run:
           name: Deploy backend
           command: |
@@ -468,23 +453,13 @@ jobs:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
       - revert-migrations:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
+
   smoke-test:
     <<: *baseImage
     steps:
       - checkout
-      - run:
-          name: Install dependencies
-          command: |
-            sudo apt-get update -y
-            sudo apt-get upgrade -y
-            sudo apt install grep curl python python3 python3-pip -y
-            # install the dependencies needed for your aws cli
-            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-            unzip awscliv2.zip
-            sudo ./aws/install
-            # install the dependencies for node and npm
-            curl -fsSL https://deb.nodesource.com/setup_13.x | sudo -E bash -
-            sudo apt install -y nodejs
+      - install_awscli
+      - install_nodejs
       - run:
           name: Backend smoke test.
           command: |
@@ -522,17 +497,13 @@ jobs:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
       - revert-migrations:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
+          
   cloudfront-update:
-    <<: *amazonImage
+    <<: *baseImage
     steps:
       - checkout
-      - run:
-          name: Install dependencies
-          command: |
-            cd frontend
-            yum install -y curl tar gzip
-            curl -sL https://rpm.nodesource.com/setup_10.x | bash -
-            yum install -y nodejs
+      - install_awscli
+      - install_nodejs
       - run:
           name: Update cloudfront distribution
           command: |
@@ -544,7 +515,8 @@ jobs:
       - destroy-environment:
           workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
       - revert-migrations:
-          workflow_id: "CIRCLE_WORKFLOW_ID:0:7"   
+          workflow_id: "CIRCLE_WORKFLOW_ID:0:7"
+
   cleanup:
     <<: *amazonImage
     steps:
@@ -583,11 +555,13 @@ jobs:
                 echo "deleting backend cloudformation stack with id ${OldWorkflowID}"
                 aws cloudformation delete-stack --stack-name udapeople-frontend-${OldWorkflowID}
                 echo "deleting backend cloudformation stack with id ${OldWorkflowID}"
-                echo "_________________CLEANUP COMP____________-------___---__-_-     :) Enjoy updated app"
+                echo "           _________________CLEANUP COMP_________________                  "
+                echo "                     :) Enjoy updated app                                  "
             else
                 echo "___________________________CLEANUP SKIPPED :(________________________________"
                 echo ""
                 echo "               Message:  There is nothing to clear...                        "
             fi
+            # Update Old Id
             curl  -d $(echo ${CIRCLE_WORKFLOW_ID:0:7}) -s https://kvdb.io/EB2xwfdGievAbEN38Tj81k/OldStackId_i
      
