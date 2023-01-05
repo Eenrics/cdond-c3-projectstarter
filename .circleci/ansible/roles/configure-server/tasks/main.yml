@@ -22,7 +22,7 @@
     # Use n version manager to use Node.js v13.8.0
     sudo npm install -g n
     sudo n 13.8.0
-    sudo hash -r
+    hash -r
 
 - name: "Install PM2 Globally"
   npm:
